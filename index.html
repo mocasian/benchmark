@@ -1,78 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Click the Circle Game</title>
+  <meta charset="UTF-8" />
+  <title>Benchmark Game Hub</title>
   <style>
     body {
-      margin: 0;
       font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background: #1e1e2f;
+      text-align: center;
+      background: #111;
       color: white;
+      margin: 0;
+      padding: 50px;
     }
-    #circle {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: red;
-      position: absolute;
-      cursor: pointer;
+    h1 {
+      font-size: 40px;
     }
-    #score {
-      font-size: 24px;
-      margin-top: 20px;
+    a {
+      display: block;
+      margin: 20px auto;
+      padding: 15px 30px;
+      background: #222;
+      color: white;
+      text-decoration: none;
+      width: 300px;
+      border-radius: 10px;
+      font-size: 20px;
+      transition: background 0.3s;
     }
-    button {
-      margin-top: 30px;
-      padding: 10px 20px;
-      font-size: 16px;
+    a:hover {
+      background: #444;
     }
   </style>
 </head>
 <body>
-  <h1>Click the Circle!</h1>
-  <div id="score">Score: 0</div>
-  <button onclick="startGame()">Start Game</button>
-  <div id="circle" style="display:none;"></div>
-
-  <script>
-    const circle = document.getElementById('circle');
-    const scoreDisplay = document.getElementById('score');
-    let score = 0;
-    let active = false;
-
-    function randomPosition() {
-      const x = Math.random() * (window.innerWidth - 100);
-      const y = Math.random() * (window.innerHeight - 100);
-      circle.style.left = x + 'px';
-      circle.style.top = y + 'px';
-    }
-
-    circle.addEventListener('click', () => {
-      if (!active) return;
-      score++;
-      scoreDisplay.textContent = "Score: " + score;
-      randomPosition();
-    });
-
-    function startGame() {
-      score = 0;
-      scoreDisplay.textContent = "Score: 0";
-      circle.style.display = 'block';
-      active = true;
-      randomPosition();
-
-      setTimeout(() => {
-        active = false;
-        circle.style.display = 'none';
-        alert("Time's up! Your score: " + score);
-      }, 15000); // 15 seconds
-    }
-  </script>
+  <h1>🧠 Human Benchmark Games</h1>
+  <a href="reaction-time.html">Reaction Time</a>
+  <a href="number-memory.html">Number Memory</a>
+  <a href="aim-trainer.html">Aim Trainer</a>
 </body>
 </html>
