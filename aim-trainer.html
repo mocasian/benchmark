@@ -8,81 +8,120 @@
       background: #111;
       color: white;
       font-family: sans-serif;
-      margin: 0;
-      overflow: hidden;
+      text-align: center;
+      padding: 50px;
+    }
+    .light {
+      background: #f4f4f4;
+      color: #111;
+    }
+    #gameArea {
+      position: relative;
+      width: 600px;
+      height: 400px;
+      margin: 0 auto;
+      background: #222;
+      border: 2px solid #fff;
     }
     .target {
       position: absolute;
-      width: 50px;
-      height: 50px;
+      width: 30px;
+      height: 30px;
       background: red;
       border-radius: 50%;
       cursor: pointer;
     }
-    #info {
+    #backButton {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      font-size: 18px;
+      top: 20px;
+      left: 20px;
+      padding: 10px 15px;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #backButton:hover {
+      background: #666;
     }
   </style>
 </head>
 <body>
-  <div id="info">Click the targets as fast as you can!</div>
+  <button id="backButton" onclick="window.location.href='index.html'">← Back</button>
+  <h1>Aim Trainer</h1>
+  <div id="gameArea"></div>
+  <div id="message"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
 
   <script>
-    const info = document.getElementById('info');
-    let times = [];
-    let shots = 0;
-    const total = 10;
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "benchmark-f06e7.firebaseapp.com",
+      databaseURL: "https://benchmark-f06e7-default-rtdb.firebaseio.com/",
+      projectId: "benchmark-f06e7",
+      storageBucket: "benchmark-f06e7.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    function updateBest(avg) {
-      const best = localStorage.getItem('aimTrainerBest');
-      if (!best || avg < parseFloat(best)) {
-        localStorage.setItem('aimTrainerBest', avg.toFixed(2));
-      }
-      info.textContent = `Avg: ${avg.toFixed(2)}ms 🏆 Best: ${localStorage.getItem('aimTrainerBest')}ms`;
-    }
+    const gameArea = document.getElementById("gameArea");
+    const message = document.getElementById("message");
+    const totalTargets = 30;
+    let targetsHit = 0;
+    let startTime, endTime;
 
-    function spawnTarget() {
-      const target = document.createElement('div');
-      target.className = 'target';
-      target.style.top = Math.random() * (window.innerHeight - 50) + 'px';
-      target.style.left = Math.random() * (window.innerWidth - 50) + 'px';
-
-      const start = performance.now();
-
-      target.onclick = () => {
-        const time = performance.now() - start;
-        times.push(time);
-        shots++;
+    function createTarget() {
+      const target = document.createElement("div");
+      target.classList.add("target");
+      const x = Math.random() * (gameArea.clientWidth - 30);
+      const y = Math.random() * (gameArea.clientHeight - 30);
+      target.style.left = `${x}px`;
+      target.style.top = `${y}px`;
+      target.addEventListener("click", () => {
         target.remove();
-
-        if (shots === total) {
-          const avg = times.reduce((a, b) => a + b) / times.length;
-          updateBest(avg);
-          times = [];
-          shots = 0;
+        targetsHit++;
+        if (targetsHit === totalTargets) {
+          endTime = performance.now();
+          const totalTime = ((endTime - startTime) / 1000).toFixed(2);
+          message.textContent = `You completed the test in ${totalTime} seconds.`;
+          saveScore(totalTime);
         } else {
-          setTimeout(spawnTarget, 300);
+          createTarget();
         }
-      };
-
-      document.body.appendChild(target);
+      });
+      gameArea.appendChild(target);
     }
 
-    spawnTarget();
-  </script>
+    function startGame() {
+      targetsHit = 0;
+      message.textContent = "";
+      gameArea.innerHTML = "";
+      startTime = performance.now();
+      createTarget();
+    }
 
-  <a href="index.html" style="
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    background: #555;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 5px;
-    text-decoration: none;
-  ">← Back</a>
+    function saveScore(score) {
+      const best = parseFloat(localStorage.getItem("aimTrainer")) || Infinity;
+      if (score < best) {
+        localStorage.setItem("aimTrainer", score);
+      }
+      const name = prompt("Enter your name for the leaderboard:");
+      if (name) {
+        db.ref("aimTrainerScores").push({
+          name: name,
+          time: parseFloat(score)
+        });
+      }
+    }
+
+    window.onload = startGame;
+  </script>
 </body>
 </html>
