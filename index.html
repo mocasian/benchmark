@@ -1,142 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Human Benchmark Games</title>
+  <meta charset="UTF-8" />
+  <title>Game Leaderboards</title>
   <style>
-    :root {
-      --bg-dark: #111;
-      --text-dark: #fff;
-      --bg-light: #f4f4f4;
-      --text-light: #000;
-    }
-
     body {
+      background: #111;
+      color: white;
       font-family: sans-serif;
-      margin: 0;
       padding: 20px;
-      background-color: var(--bg-dark);
-      color: var(--text-dark);
-      transition: background 0.3s, color 0.3s;
     }
-
-    body.light {
-      background-color: var(--bg-light);
-      color: var(--text-light);
-    }
-
-    h1 {
+    h1, h2 {
       text-align: center;
     }
-
-    #theme-toggle {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      cursor: pointer;
-      padding: 6px 12px;
-      border: none;
-      border-radius: 5px;
-      background: #888;
-      color: white;
-    }
-
-    .game-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-width: 400px;
-      margin: 0 auto;
-    }
-
-    .game-link {
-      padding: 12px;
-      background: #333;
+    .leaderboard {
+      margin: 20px auto;
+      max-width: 500px;
+      background: #222;
+      padding: 15px;
       border-radius: 8px;
-      text-align: center;
-      color: white;
-      text-decoration: none;
-      font-size: 18px;
-      transition: background 0.3s;
     }
-
-    body.light .game-link {
-      background: #ccc;
-      color: black;
-    }
-
-    .game-link:hover {
-      background: #555;
-    }
-
-    body.light .game-link:hover {
-      background: #aaa;
-    }
-
-    #scores {
-      margin-top: 30px;
-      max-width: 400px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    #scores h2 {
-      text-align: center;
-    }
-
-    #scores ul {
+    ul {
       list-style: none;
       padding: 0;
     }
-
-    #scores li {
-      margin: 5px 0;
-      font-size: 16px;
+    li {
+      padding: 5px 0;
+      border-bottom: 1px solid #333;
     }
   </style>
 </head>
 <body>
-  <button id="theme-toggle">Toggle Theme</button>
-  <h1>Human Benchmark Games</h1>
+  <h1>🌍 Global Leaderboards</h1>
 
-  <div class="game-list">
-    <a class="game-link" href="reaction-time.html">🟥 Reaction Time</a>
-    <a class="game-link" href="number-memory.html">🔢 Number Memory</a>
-    <a class="game-link" href="sequence-memory.html">🔢 Sequence Memory</a>
-    <a class="game-link" href="visual-memory.html">🟩 Visual Memory</a>
-    <a class="game-link" href="aim-trainer.html">🎯 Aim Trainer</a>
+  <div class="leaderboard">
+    <h2>Number Memory</h2>
+    <ul id="number-memory-list"></ul>
   </div>
 
-  <div id="scores">
-    <h2>🏆 High Scores</h2>
-    <ul>
-      <li>Reaction Time: <strong id="score-reaction">—</strong></li>
-      <li>Number Memory: <strong id="score-number">—</strong></li>
-      <li>Sequence Memory: <strong id="score-sequence">—</strong></li>
-      <li>Visual Memory: <strong id="score-visual">—</strong></li>
-      <li>Aim Trainer: <strong id="score-aim">—</strong></li>
-    </ul>
+  <div class="leaderboard">
+    <h2>Reaction Time</h2>
+    <ul id="reaction-time-list"></ul>
   </div>
+
+  <div class="leaderboard">
+    <h2>Sequence Memory</h2>
+    <ul id="sequence-memory-list"></ul>
+  </div>
+
+  <div class="leaderboard">
+    <h2>Visual Memory</h2>
+    <ul id="visual-memory-list"></ul>
+  </div>
+
+  <div class="leaderboard">
+    <h2>Aim Trainer</h2>
+    <ul id="aim-trainer-list"></ul>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
 
   <script>
-    // Theme toggle
-    const toggleBtn = document.getElementById('theme-toggle');
-    toggleBtn.addEventListener('click', () => {
-      document.body.classList.toggle('light');
-      localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
-    });
+    // Replace with your Firebase project configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
 
-    // Load saved theme
-    if (localStorage.getItem('theme') === 'light') {
-      document.body.classList.add('light');
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Function to load leaderboard data
+    function loadLeaderboard(gameKey, listId, scoreField, isLowerBetter = false) {
+      const list = document.getElementById(listId);
+      const ref = db.ref(gameKey);
+      const query = ref.orderByChild(scoreField);
+      const limitedQuery = isLowerBetter ? query.limitToFirst(10) : query.limitToLast(10);
+
+      limitedQuery.on("value", snapshot => {
+        const scores = [];
+        snapshot.forEach(child => {
+          scores.push(child.val());
+        });
+
+        // Sort scores
+        scores.sort((a, b) => {
+          if (isLowerBetter) {
+            return a[scoreField] - b[scoreField];
+          } else {
+            return b[scoreField] - a[scoreField];
+          }
+        });
+
+        // Display scores
+        list.innerHTML = '';
+        scores.forEach((entry, index) => {
+          const li = document.createElement("li");
+          li.textContent = `${index + 1}. ${entry.name} - ${entry[scoreField]}${scoreField === 'time' ? 'ms' : ''}`;
+          list.appendChild(li);
+        });
+      });
     }
 
-    // Display high scores
-    document.getElementById('score-reaction').textContent = localStorage.getItem('bestTime') + 'ms' || '—';
-    document.getElementById('score-number').textContent = 'Level ' + localStorage.getItem('numberMemoryBest') || '—';
-    document.getElementById('score-sequence').textContent = 'Level ' + localStorage.getItem('sequenceMemoryBest') || '—';
-    document.getElementById('score-visual').textContent = 'Level ' + localStorage.getItem('visualMemoryBest') || '—';
-    document.getElementById('score-aim').textContent = localStorage.getItem('aimTrainerBest') + 'ms' || '—';
+    // Load leaderboards for each game
+    loadLeaderboard("numberMemoryScores", "number-memory-list", "level");
+    loadLeaderboard("reactionTimeScores", "reaction-time-list", "time", true);
+    loadLeaderboard("sequenceMemoryScores", "sequence-memory-list", "level");
+    loadLeaderboard("visualMemoryScores", "visual-memory-list", "level");
+    loadLeaderboard("aimTrainerScores", "aim-trainer-list", "time", true);
   </script>
 </body>
 </html>
