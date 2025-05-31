@@ -2,111 +2,61 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Reaction Time Test</title>
+  <title>Reaction Time</title>
   <style>
     body {
-      margin: 0;
+      background: #111;
+      color: white;
       font-family: sans-serif;
       text-align: center;
-      background: #333;
-      color: white;
+      padding: 50px;
     }
-    #box {
-      width: 100%;
-      height: 100vh;
+    .light {
+      background: #f4f4f4;
+      color: #111;
+    }
+    #testArea {
+      width: 300px;
+      height: 300px;
+      margin: 0 auto;
+      background: #555;
       display: flex;
-      justify-content: center;
       align-items: center;
-      background: red;
-      font-size: 32px;
+      justify-content: center;
       cursor: pointer;
-      flex-direction: column;
+      font-size: 1.5em;
     }
-    #stats {
-      margin-top: 20px;
-      font-size: 20px;
+    #backButton {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 10px 15px;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #backButton:hover {
+      background: #666;
     }
   </style>
 </head>
 <body>
-  <div id="box">
-    <div id="message">Wait for green...</div>
-    <div id="stats"></div>
-  </div>
+  <button id="backButton" onclick="window.location.href='index.html'">← Back</button>
+  <h1>Reaction Time</h1>
+  <div id="testArea">Click to start</div>
+  <div id="message"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
 
   <script>
-    const box = document.getElementById('box');
-    const message = document.getElementById('message');
-    const stats = document.getElementById('stats');
-
-    let start, timeout;
-    let clickable = false;
-
-    function updateStats(current = null) {
-      const best = localStorage.getItem('bestTime');
-      stats.innerHTML = `
-        ${current ? `Your time: <strong>${current}ms</strong><br>` : ''}
-        Best time: <strong>${best ? best + 'ms' : '—'}</strong>
-      `;
-    }
-
-    function reset() {
-      box.style.background = 'red';
-      message.textContent = 'Wait for green...';
-      clickable = false;
-      updateStats();
-      timeout = setTimeout(() => {
-        box.style.background = 'green';
-        message.textContent = 'CLICK or PRESS K/SPACE!';
-        start = new Date().getTime();
-        clickable = true;
-      }, Math.random() * 3000 + 2000);
-    }
-
-    function handleAction() {
-      if (!clickable && box.style.background === 'red') {
-        clearTimeout(timeout);
-        message.textContent = 'Too early! Click or press to restart.';
-        box.style.background = '#222';
-      } else if (clickable && box.style.background === 'green') {
-        let reaction = new Date().getTime() - start;
-        message.textContent = `Your time: ${reaction}ms. Click or press to try again.`;
-        box.style.background = '#222';
-        clickable = false;
-
-        let best = localStorage.getItem('bestTime');
-        if (!best || reaction < parseInt(best)) {
-          localStorage.setItem('bestTime', reaction);
-        }
-        updateStats(reaction);
-      } else {
-        reset();
-      }
-    }
-
-    box.addEventListener('click', handleAction);
-    document.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' || e.key.toLowerCase() === 'k') {
-        handleAction();
-      }
-    });
-
-    reset();
-  </script>
-
-  <a href="index.html" style="
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  background: #555;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 5px;
-  text-decoration: none;
-  font-family: sans-serif;
-  font-size: 14px;
-  z-index: 999;
-">← Back</a>
-
-</body>
-</html>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "benchmark-f06e7.firebaseapp.com",
+      databaseURL: "https://benchmark
+::contentReference[oaicite:0]{index=0}
+ 
