@@ -1,124 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Number Memory</title>
-  <style>
-    body {
-      background: #111;
-      color: white;
-      font-family: sans-serif;
-      text-align: center;
-      padding: 50px;
-    }
-    .light {
-      background: #f4f4f4;
-      color: #111;
-    }
-    #number, #inputSection {
-      font-size: 2em;
-      margin: 20px;
-    }
-    #backButton {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      padding: 10px 15px;
-      background: #444;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    #backButton:hover {
-      background: #666;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Number Memory</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    background: #111; color: white; font-family: monospace;
+    user-select: none;
+    transition: background 0.3s, color 0.3s;
+  }
+  body.light {
+    background: #f4f4f4; color: #111;
+  }
+  #backButton {
+    position: fixed; top: 20px; left: 20px;
+    padding: 10px 15px;
+    background: #444; border: none; border-radius: 5px;
+    color: white; cursor: pointer;
+  }
+  #backButton:hover {
+    background: #666;
+  }
+  #numberDisplay {
+    font-size: 12vw;
+    margin-bottom: 40px;
+    user-select: none;
+  }
+  #inputField {
+    font-size: 8vw;
+    padding: 15px 20px;
+    width: 80vw;
+    max-width: 500px;
+    text-align: center;
+    border-radius: 10px;
+    border: none;
+    outline: none;
+    background: #222;
+    color: white;
+  }
+  body.light #inputField {
+    background: #ddd;
+    color: #111;
+  }
+  #message {
+    margin-top: 30px;
+    font-size: 2vw;
+    height: 3em;
+  }
+</style>
 </head>
 <body>
-  <button id="backButton" onclick="window.location.href='index.html'">← Back</button>
-  <h1>Number Memory</h1>
-  <div id="number"></div>
-  <div id="inputSection" style="display:none;">
-    <input id="userInput" type="text" placeholder="Enter the number" />
-    <button onclick="checkInput()">Submit</button>
-  </div>
-  <div id="message"></div>
+<button id="backButton" onclick="window.location.href='index.html'">← Back</button>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
+<div id="numberDisplay"></div>
+<input id="inputField" autocomplete="off" inputmode="numeric" pattern="[0-9]*" disabled />
+<div id="message"></div>
 
-  <script>
-    // Firebase configuration
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "benchmark-f06e7.firebaseapp.com",
-      databaseURL: "https://benchmark-f06e7-default-rtdb.firebaseio.com/",
-      projectId: "benchmark-f06e7",
-      storageBucket: "benchmark-f06e7.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+<script>
+  const numberDisplay = document.getElementById("numberDisplay");
+  const inputField = document.getElementById("inputField");
+  const message = document.getElementById("message");
 
-    let level = 1;
-    let currentNumber = "";
+  let currentNumber = "";
+  let level = 1;
+  let inputEnabled = false;
 
-    function generateNumber(length) {
-      let number = "";
-      for (let i = 0; i < length; i++) {
-        number += Math.floor(Math.random() * 10);
-      }
-      return number;
+  function generateNumber(len) {
+    let num = "";
+    for(let i=0; i<len; i++) {
+      num += Math.floor(Math.random() * 10);
     }
+    return num;
+  }
 
-    function startLevel() {
-      currentNumber = generateNumber(level);
-      document.getElementById("number").textContent = currentNumber;
-      document.getElementById("inputSection").style.display = "none";
-      document.getElementById("message").textContent = "";
-      setTimeout(() => {
-        document.getElementById("number").textContent = "";
-        document.getElementById("inputSection").style.display = "block";
-        document.getElementById("userInput").value = "";
-        document.getElementById("userInput").focus();
-      }, 1000 + level * 500);
+  function showNumber() {
+    inputEnabled = false;
+    inputField.value = "";
+    inputField.disabled = true;
+    currentNumber = generateNumber(level);
+    numberDisplay.textContent = currentNumber;
+    message.textContent = `Level ${level}: Memorize the number`;
+    setTimeout(() => {
+      numberDisplay.textContent = "";
+      inputField.disabled = false;
+      inputField.focus();
+      message.textContent = "Enter the number and press Enter";
+      inputEnabled = true;
+    }, Math.max(1500, level * 600));
+  }
+
+  function checkInput() {
+    if(!inputEnabled) return;
+    if(inputField.value === currentNumber) {
+      message.textContent = "Correct! Next level...";
+      level++;
+      inputEnabled = false;
+      setTimeout(showNumber, 1500);
+    } else {
+      message.textContent = `Wrong! You reached level ${level}. Starting over...`;
+      saveScore(level);
+      level = 1;
+      inputEnabled = false;
+      setTimeout(showNumber, 2500);
     }
+  }
 
-    function checkInput() {
-      const userInput = document.getElementById("userInput").value;
-      if (userInput === currentNumber) {
-        level++;
-        startLevel();
-      } else {
-        document.getElementById("message").textContent = `Game Over! You reached level ${level}.`;
-        saveScore(level);
-      }
+  function saveScore(score) {
+    let best = localStorage.getItem("numberMemory");
+    if(!best || score > best) {
+      localStorage.setItem("numberMemory", score);
     }
-
-    function saveScore(score) {
-      const best = parseInt(localStorage.getItem("numberMemory")) || 0;
-      if (score > best) {
-        localStorage.setItem("numberMemory", score);
-      }
-      const name = prompt("Enter your name for the leaderboard:");
-      if (name) {
-        db.ref("numberMemoryScores").push({
-          name: name,
-          level: score
-        });
-      }
+    const name = prompt("Enter your name for leaderboard:");
+    if(name) {
+      // Submit to Firebase leaderboard (implement your firebase config & submission here)
+      // For now just console.log
+      console.log(`Name: ${name}, Score: ${score}`);
     }
+  }
 
-    document.getElementById("userInput").addEventListener("keydown", function(e) {
-      if (e.key === "Enter") {
-        checkInput();
-      }
-    });
+  inputField.addEventListener("keydown", e => {
+    if(e.key === "Enter") {
+      checkInput();
+    }
+  });
 
-    window.onload = startLevel;
-  </script>
+  window.onload = () => {
+    if(localStorage.getItem("theme") === "light") {
+      document.body.classList.add("light");
+    }
+    showNumber();
+  };
+</script>
 </body>
 </html>
