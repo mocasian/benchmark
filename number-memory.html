@@ -61,24 +61,23 @@
     }
 
     function checkAnswer() {
-      if (input.value === number) {
-        level++;
-      } else {
-        alert(`Game over! You reached level ${level}`);
-        level = 1;
-      }
-      updateBest(level);
-      showNumber();
+  if (input.value === number) {
+    level++;
+  } else {
+    alert(`Game over! You reached level ${level}`);
+    const name = prompt("Enter your name for the leaderboard:");
+    if (name) {
+      firebase.database().ref("numberMemoryScores").push({
+        name: name,
+        level: level
+      });
     }
+    level = 1;
+  }
+  updateBest(level);
+  showNumber();
+}
 
-    submit.addEventListener('click', checkAnswer);
-
-    // ✅ Pressing Enter submits the number
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        checkAnswer();
-      }
-    });
 
     updateBest(level);
     showNumber();
