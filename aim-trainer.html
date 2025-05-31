@@ -1,48 +1,88 @@
-<script>
-  const game = document.getElementById('game');
-  const timeDisplay = document.getElementById('time');
-  const bestDisplay = document.createElement('div');
-  document.body.appendChild(bestDisplay);
-
-  let times = [];
-  let shots = 0;
-  const totalTargets = 10;
-
-  function updateBest(avg) {
-    const best = localStorage.getItem('aimTrainerBest');
-    if (!best || avg < parseFloat(best)) {
-      localStorage.setItem('aimTrainerBest', avg.toFixed(2));
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Aim Trainer</title>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      margin: 0;
+      overflow: hidden;
     }
-    bestDisplay.textContent = `🏆 Best Avg: ${localStorage.getItem('aimTrainerBest')}ms`;
-  }
+    .target {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: red;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">Click the targets as fast as you can!</div>
 
-  function spawnTarget() {
-    const target = document.createElement('div');
-    target.classList.add('target');
-    target.style.top = Math.random() * (window.innerHeight - 40) + 'px';
-    target.style.left = Math.random() * (window.innerWidth - 40) + 'px';
+  <script>
+    const info = document.getElementById('info');
+    let times = [];
+    let shots = 0;
+    const total = 10;
 
-    const appearTime = performance.now();
-    target.addEventListener('click', () => {
-      const reaction = performance.now() - appearTime;
-      times.push(reaction);
-      shots++;
-      target.remove();
-
-      if (shots >= totalTargets) {
-        const avg = times.reduce((a, b) => a + b) / times.length;
-        timeDisplay.textContent = `Average: ${avg.toFixed(2)}ms`;
-        updateBest(avg);
-        times = [];
-        shots = 0;
-      } else {
-        setTimeout(spawnTarget, 500);
+    function updateBest(avg) {
+      const best = localStorage.getItem('aimTrainerBest');
+      if (!best || avg < parseFloat(best)) {
+        localStorage.setItem('aimTrainerBest', avg.toFixed(2));
       }
-    });
+      info.textContent = `Avg: ${avg.toFixed(2)}ms 🏆 Best: ${localStorage.getItem('aimTrainerBest')}ms`;
+    }
 
-    game.appendChild(target);
-  }
+    function spawnTarget() {
+      const target = document.createElement('div');
+      target.className = 'target';
+      target.style.top = Math.random() * (window.innerHeight - 50) + 'px';
+      target.style.left = Math.random() * (window.innerWidth - 50) + 'px';
 
-  updateBest(Infinity);
-  spawnTarget();
-</script>
+      const start = performance.now();
+
+      target.onclick = () => {
+        const time = performance.now() - start;
+        times.push(time);
+        shots++;
+        target.remove();
+
+        if (shots === total) {
+          const avg = times.reduce((a, b) => a + b) / times.length;
+          updateBest(avg);
+          times = [];
+          shots = 0;
+        } else {
+          setTimeout(spawnTarget, 300);
+        }
+      };
+
+      document.body.appendChild(target);
+    }
+
+    spawnTarget();
+  </script>
+
+  <a href="index.html" style="
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: #555;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 5px;
+    text-decoration: none;
+  ">← Back</a>
+</body>
+</html>
