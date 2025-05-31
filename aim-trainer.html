@@ -1,127 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Aim Trainer</title>
-  <style>
-    body {
-      background: #111;
-      color: white;
-      font-family: sans-serif;
-      text-align: center;
-      padding: 50px;
-    }
-    .light {
-      background: #f4f4f4;
-      color: #111;
-    }
-    #gameArea {
-      position: relative;
-      width: 600px;
-      height: 400px;
-      margin: 0 auto;
-      background: #222;
-      border: 2px solid #fff;
-    }
-    .target {
-      position: absolute;
-      width: 30px;
-      height: 30px;
-      background: red;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-    #backButton {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      padding: 10px 15px;
-      background: #444;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    #backButton:hover {
-      background: #666;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aim Trainer</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #111;
+    user-select: none;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+  body.light {
+    background: #f4f4f4;
+  }
+  #backButton {
+    position: fixed; top: 20px; left: 20px;
+    padding: 10px 15px;
+    background: #444; border: none; border-radius: 5px;
+    color: white; cursor: pointer;
+    z-index: 1000;
+  }
+  #backButton:hover {
+    background: #666;
+  }
+  #gameArea {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+  #target {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background: red;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  body.light #target {
+    background: darkred;
+  }
+  #scoreboard {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    color: white;
+    font-family: sans-serif;
+    font-size: 1.5rem;
+    user-select: none;
+    z-index: 1000;
+  }
+  body.light #scoreboard {
+    color: #111;
+  }
+</style>
 </head>
 <body>
-  <button id="backButton" onclick="window.location.href='index.html'">← Back</button>
-  <h1>Aim Trainer</h1>
-  <div id="gameArea"></div>
-  <div id="message"></div>
+<button id="backButton" onclick="window.location.href='index.html'">← Back</button>
+<div id="gameArea">
+  <div id="target"></div>
+</div>
+<div id="scoreboard">Score: 0</div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
+<script>
+  const gameArea = document.getElementById("gameArea");
+  const target = document.getElementById("target");
+  const scoreboard = document.getElementById("scoreboard");
 
-  <script>
-    // Firebase configuration
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "benchmark-f06e7.firebaseapp.com",
-      databaseURL: "https://benchmark-f06e7-default-rtdb.firebaseio.com/",
-      projectId: "benchmark-f06e7",
-      storageBucket: "benchmark-f06e7.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+  let score = 0;
+  let gameDuration = 30000; // 30 seconds
+  let gameEndTime = 0;
+  let timer;
 
-    const gameArea = document.getElementById("gameArea");
-    const message = document.getElementById("message");
-    const totalTargets = 30;
-    let targetsHit = 0;
-    let startTime, endTime;
+  function randomPosition() {
+    const maxX = window.innerWidth - target.offsetWidth;
+    const maxY = window.innerHeight - target.offsetHeight;
+    const x = Math.random() * maxX;
+    const y = Math.random() * maxY;
+    return {x, y};
+  }
 
-    function createTarget() {
-      const target = document.createElement("div");
-      target.classList.add("target");
-      const x = Math.random() * (gameArea.clientWidth - 30);
-      const y = Math.random() * (gameArea.clientHeight - 30);
-      target.style.left = `${x}px`;
-      target.style.top = `${y}px`;
-      target.addEventListener("click", () => {
-        target.remove();
-        targetsHit++;
-        if (targetsHit === totalTargets) {
-          endTime = performance.now();
-          const totalTime = ((endTime - startTime) / 1000).toFixed(2);
-          message.textContent = `You completed the test in ${totalTime} seconds.`;
-          saveScore(totalTime);
-        } else {
-          createTarget();
-        }
-      });
-      gameArea.appendChild(target);
+  function moveTarget() {
+    const pos = randomPosition();
+    target.style.left = pos.x + "px";
+    target.style.top = pos.y + "px";
+  }
+
+  function hitTarget() {
+    if(Date.now() > gameEndTime) {
+      endGame();
+      return;
     }
+    score++;
+    scoreboard.textContent = `Score: ${score}`;
+    moveTarget();
+  }
 
-    function startGame() {
-      targetsHit = 0;
-      message.textContent = "";
-      gameArea.innerHTML = "";
-      startTime = performance.now();
-      createTarget();
+  function endGame() {
+    target.style.display = "none";
+    alert(`Game over! Your score: ${score}`);
+    saveScore(score);
+  }
+
+  function saveScore(score) {
+    let best = localStorage.getItem("aimTrainer");
+    if(!best || score > best) {
+      localStorage.setItem("aimTrainer", score);
+      alert("New best score!");
     }
-
-    function saveScore(score) {
-      const best = parseFloat(localStorage.getItem("aimTrainer")) || Infinity;
-      if (score < best) {
-        localStorage.setItem("aimTrainer", score);
-      }
-      const name = prompt("Enter your name for the leaderboard:");
-      if (name) {
-        db.ref("aimTrainerScores").push({
-          name: name,
-          time: parseFloat(score)
-        });
-      }
+    const name = prompt("Enter your name for leaderboard:");
+    if(name) {
+      // Submit to Firebase leaderboard (add your firebase code here)
+      console.log(`Name: ${name}, Score: ${score}`);
     }
+  }
 
-    window.onload = startGame;
-  </script>
+  target.addEventListener("click", hitTarget);
+
+  window.onload = () => {
+    if(localStorage.getItem("theme") === "light") {
+      document.body.classList.add("light");
+    }
+    score = 0;
+    scoreboard.textContent = `Score: 0`;
+    target.style.display = "block";
+    moveTarget();
+    gameEndTime = Date.now() + gameDuration;
+    setTimeout(() => {
+      endGame();
+    }, gameDuration);
+  };
+
+  window.onresize = () => {
+    moveTarget();
+  };
+</script>
 </body>
 </html>
