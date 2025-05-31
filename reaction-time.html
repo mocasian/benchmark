@@ -25,32 +25,43 @@
 </head>
 <body>
   <div id="box">Wait for green...</div>
+
   <script>
     const box = document.getElementById('box');
     let start, timeout;
+    let clickable = false;
 
     function reset() {
       box.style.background = 'red';
       box.textContent = 'Wait for green...';
+      clickable = false;
       timeout = setTimeout(() => {
         box.style.background = 'green';
-        box.textContent = 'CLICK!';
+        box.textContent = 'CLICK or PRESS K/SPACE!';
         start = new Date().getTime();
+        clickable = true;
       }, Math.random() * 3000 + 2000);
     }
 
-    box.addEventListener('click', () => {
-      if (box.style.background === 'green') {
+    function handleAction() {
+      if (!clickable && box.style.background === 'red') {
+        clearTimeout(timeout);
+        box.textContent = 'Too early! Click or press to restart.';
+        box.style.background = '#222';
+      } else if (clickable && box.style.background === 'green') {
         let reaction = new Date().getTime() - start;
-        box.textContent = `Your time: ${reaction}ms. Click to try again.`;
+        box.textContent = `Your time: ${reaction}ms. Click or press to try again.`;
         box.style.background = '#222';
-        clearTimeout(timeout);
-      } else if (box.style.background === 'red') {
-        clearTimeout(timeout);
-        box.textContent = 'Too early! Click to restart.';
-        box.style.background = '#222';
+        clickable = false;
       } else {
         reset();
+      }
+    }
+
+    box.addEventListener('click', handleAction);
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.key.toLowerCase() === 'k') {
+        handleAction();
       }
     });
 
@@ -58,4 +69,3 @@
   </script>
 </body>
 </html>
-
