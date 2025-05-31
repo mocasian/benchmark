@@ -9,95 +9,105 @@
       color: white;
       text-align: center;
       font-family: sans-serif;
+      margin: 0;
+      padding: 20px;
     }
     #grid {
       display: grid;
       grid-template-columns: repeat(3, 100px);
-      grid-gap: 10px;
+      gap: 10px;
       justify-content: center;
-      margin-top: 50px;
+      margin-top: 20px;
     }
     .tile {
       width: 100px;
       height: 100px;
-      background: #333;
-      border-radius: 10px;
-      cursor: pointer;
+      background: #444;
+      border-radius: 8px;
       transition: background 0.2s;
     }
     .active {
-      background: limegreen !important;
+      background: #00ccff;
+    }
+    #level {
+      font-size: 24px;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <h1>Sequence Memory</h1>
-  <p id="level">Level: 1</p>
+  <div id="level">Level: 1</div>
   <div id="grid"></div>
+
   <script>
     const grid = document.getElementById('grid');
-    const levelText = document.getElementById('level');
-    let sequence = [], playerSeq = [], level = 1;
-    
-    // create 9 tiles
-    for (let i = 0; i < 9; i++) {
-      const tile = document.createElement('div');
-      tile.classList.add('tile');
-      tile.dataset.index = i;
-      tile.addEventListener('click', () => {
-        flash(tile);
-        playerSeq.push(parseInt(tile.dataset.index));
-        checkInput();
-      });
-      grid.appendChild(tile);
+    const levelDisplay = document.getElementById('level');
+    let sequence = [];
+    let userInput = [];
+    let level = 1;
+    const tiles = [];
+
+    function updateBest(level) {
+      const best = localStorage.getItem('sequenceMemoryBest') || 1;
+      if (level > best) {
+        localStorage.setItem('sequenceMemoryBest', level);
+      }
+      levelDisplay.textContent = `Level: ${level} 🏆 Best: ${localStorage.getItem('sequenceMemoryBest')}`;
     }
 
-    function flash(tile) {
-      tile.classList.add('active');
-      setTimeout(() => tile.classList.remove('active'), 400);
+    function generateSequence(n) {
+      const seq = [];
+      for (let i = 0; i < n; i++) {
+        seq.push(Math.floor(Math.random() * 9));
+      }
+      return seq;
+    }
+
+    function flashTile(index) {
+      tiles[index].classList.add('active');
+      setTimeout(() => tiles[index].classList.remove('active'), 400);
     }
 
     function playSequence() {
-      let i = 0;
-      const interval = setInterval(() => {
-        const index = sequence[i];
-        const tile = grid.children[index];
-        flash(tile);
-        i++;
-        if (i >= sequence.length) clearInterval(interval);
-      }, 600);
+      let delay = 0;
+      sequence.forEach((index, i) => {
+        setTimeout(() => flashTile(index), delay);
+        delay += 600;
+      });
     }
 
-    function nextLevel() {
-      levelText.textContent = `Level: ${level}`;
-      const next = Math.floor(Math.random() * 9);
-      sequence.push(next);
-      playerSeq = [];
-      setTimeout(playSequence, 500);
-    }
-
-    function checkInput() {
-      const i = playerSeq.length - 1;
-      if (playerSeq[i] !== sequence[i]) {
-        alert(`Game Over! Final level: ${level}`);
-        location.reload();
+    function checkInput(index) {
+      if (index !== sequence[userInput.length]) {
+        alert(`Game Over! You reached level ${level}.`);
+        level = 1;
+        startLevel();
+        return;
       }
-      if (playerSeq.length === sequence.length) {
+      userInput.push(index);
+      if (userInput.length === sequence.length) {
         level++;
-        setTimeout(nextLevel, 1000);
+        setTimeout(startLevel, 1000);
       }
     }
-    function updateBest(level) {
-  const best = localStorage.getItem('sequenceMemoryBest') || 1;
-  if (level > best) {
-    localStorage.setItem('sequenceMemoryBest', level);
-  }
-  document.getElementById('level').textContent = `Level: ${level} 🏆 Best: ${localStorage.getItem('sequenceMemoryBest')}`;
-}
 
+    function startLevel() {
+      updateBest(level);
+      userInput = [];
+      sequence = generateSequence(level);
+      playSequence();
+    }
 
-    nextLevel();
+    // Init grid
+    for (let i = 0; i < 9; i++) {
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.addEventListener('click', () => checkInput(i));
+      tiles.push(tile);
+      grid.appendChild(tile);
+    }
+
+    startLevel();
   </script>
 </body>
 </html>
-
