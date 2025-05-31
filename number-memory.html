@@ -7,94 +7,118 @@
     body {
       background: #111;
       color: white;
-      text-align: center;
       font-family: sans-serif;
-      padding: 20px;
+      text-align: center;
+      padding: 50px;
     }
-    input, button {
-      font-size: 18px;
-      padding: 8px;
-      margin: 5px;
+    .light {
+      background: #f4f4f4;
+      color: #111;
+    }
+    #number, #inputSection {
+      font-size: 2em;
+      margin: 20px;
+    }
+    #backButton {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 10px 15px;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #backButton:hover {
+      background: #666;
     }
   </style>
 </head>
 <body>
+  <button id="backButton" onclick="window.location.href='index.html'">← Back</button>
   <h1>Number Memory</h1>
-  <div id="level">Level: 1</div>
-  <div id="number" style="font-size: 32px; margin: 20px;"></div>
-  <input id="input" type="text" style="display:none;" />
-  <button id="submit" style="display:none;">Submit</button>
+  <div id="number"></div>
+  <div id="inputSection" style="display:none;">
+    <input id="userInput" type="text" placeholder="Enter the number" />
+    <button onclick="checkInput()">Submit</button>
+  </div>
+  <div id="message"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
 
   <script>
-    const numberDisplay = document.getElementById('number');
-    const input = document.getElementById('input');
-    const submit = document.getElementById('submit');
-    const levelDisplay = document.getElementById('level');
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "benchmark-f06e7.firebaseapp.com",
+      databaseURL: "https://benchmark-f06e7-default-rtdb.firebaseio.com/",
+      projectId: "benchmark-f06e7",
+      storageBucket: "benchmark-f06e7.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
     let level = 1;
-    let number = '';
-
-    function updateBest(level) {
-      const best = localStorage.getItem('numberMemoryBest') || 1;
-      if (level > best) {
-        localStorage.setItem('numberMemoryBest', level);
-      }
-      levelDisplay.textContent = `Level: ${level} 🏆 Best: ${localStorage.getItem('numberMemoryBest')}`;
-    }
+    let currentNumber = "";
 
     function generateNumber(length) {
-      return Array.from({ length }, () => Math.floor(Math.random() * 10)).join('');
+      let number = "";
+      for (let i = 0; i < length; i++) {
+        number += Math.floor(Math.random() * 10);
+      }
+      return number;
     }
 
-    function showNumber() {
-      input.style.display = 'none';
-      submit.style.display = 'none';
-      number = generateNumber(level + 1);
-      numberDisplay.textContent = number;
+    function startLevel() {
+      currentNumber = generateNumber(level);
+      document.getElementById("number").textContent = currentNumber;
+      document.getElementById("inputSection").style.display = "none";
+      document.getElementById("message").textContent = "";
       setTimeout(() => {
-        numberDisplay.textContent = '';
-        input.value = '';
-        input.style.display = 'inline-block';
-        submit.style.display = 'inline-block';
-        input.focus();
-      }, 1000 + level * 250);
+        document.getElementById("number").textContent = "";
+        document.getElementById("inputSection").style.display = "block";
+        document.getElementById("userInput").value = "";
+        document.getElementById("userInput").focus();
+      }, 1000 + level * 500);
     }
 
-    function checkAnswer() {
-  if (input.value === number) {
-    level++;
-  } else {
-    alert(`Game over! You reached level ${level}`);
-    const name = prompt("Enter your name for the leaderboard:");
-    if (name) {
-      firebase.database().ref("numberMemoryScores").push({
-        name: name,
-        level: level
-      });
+    function checkInput() {
+      const userInput = document.getElementById("userInput").value;
+      if (userInput === currentNumber) {
+        level++;
+        startLevel();
+      } else {
+        document.getElementById("message").textContent = `Game Over! You reached level ${level}.`;
+        saveScore(level);
+      }
     }
-    level = 1;
-  }
-  updateBest(level);
-  showNumber();
-}
 
+    function saveScore(score) {
+      const best = parseInt(localStorage.getItem("numberMemory")) || 0;
+      if (score > best) {
+        localStorage.setItem("numberMemory", score);
+      }
+      const name = prompt("Enter your name for the leaderboard:");
+      if (name) {
+        db.ref("numberMemoryScores").push({
+          name: name,
+          level: score
+        });
+      }
+    }
 
-    updateBest(level);
-    showNumber();
+    document.getElementById("userInput").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        checkInput();
+      }
+    });
+
+    window.onload = startLevel;
   </script>
-
-  <!-- ✅ Back Button -->
-  <a href="index.html" style="
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    background: #555;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 5px;
-    text-decoration: none;
-    font-family: sans-serif;
-    font-size: 14px;
-  ">← Back</a>
 </body>
 </html>
