@@ -1,1 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Number Memory</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 100px;
+      background: #111;
+      color: white;
+    }
+    input {
+      padding: 10px;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Number Memory</h1>
+  <div id="game">
+    <div id="number"></div>
+    <div id="input" style="display:none;">
+      <input id="guess" type="text" />
+      <button onclick="check()">Submit</button>
+    </div>
+  </div>
+  <script>
+    let level = 1;
+    let number = "";
+
+    function startLevel() {
+      number = "";
+      for (let i = 0; i < level; i++) {
+        number += Math.floor(Math.random() * 10);
+      }
+      document.getElementById("number").textContent = number;
+      document.getElementById("input").style.display = "none";
+      setTimeout(() => {
+        document.getElementById("number").textContent = "";
+        document.getElementById("input").style.display = "block";
+        document.getElementById("guess").value = "";
+        document.getElementById("guess").focus();
+      }, 2000 + level * 300);
+    }
+
+    function check() {
+      const guess = document.getElementById("guess").value;
+      if (guess === number) {
+        level++;
+        startLevel();
+      } else {
+        document.getElementById("game").innerHTML = `<h2>Game Over! You reached level ${level}.</h2><button onclick="location.reload()">Try Again</button>`;
+      }
+    }
+
+    startLevel();
+  </script>
+</body>
+</html>
 
