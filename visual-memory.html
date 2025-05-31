@@ -1,1 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Visual Memory</title>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    #grid {
+      display: grid;
+      justify-content: center;
+      margin-top: 30px;
+      gap: 5px;
+    }
+    .cell {
+      width: 40px;
+      height: 40px;
+      background: #333;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .highlight {
+      background: limegreen;
+    }
+    .wrong {
+      background: red !important;
+    }
+  </style>
+</head>
+<body>
+  <h1>Visual Memory</h1>
+  <p id="level">Level: 1</p>
+  <div id="grid"></div>
+
+  <script>
+    const grid = document.getElementById("grid");
+    const levelText = document.getElementById("level");
+    let level = 1, highlighted = [], userSelected = [];
+
+    function generateGrid(size) {
+      grid.innerHTML = '';
+      grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+      const total = size * size;
+      for (let i = 0; i < total; i++) {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        cell.dataset.index = i;
+        cell.addEventListener("click", handleClick);
+        grid.appendChild(cell);
+      }
+    }
+
+    function highlightRandomCells(size) {
+      const total = size * size;
+      const cellsToHighlight = level + 2;
+      highlighted = [];
+      while (highlighted.length < cellsToHighlight) {
+        const index = Math.floor(Math.random() * total);
+        if (!highlighted.includes(index)) {
+          highlighted.push(index);
+          grid.children[index].classList.add("highlight");
+        }
+      }
+      setTimeout(() => {
+        highlighted.forEach(i => grid.children[i].classList.remove("highlight"));
+      }, 1000 + level * 100);
+    }
+
+    function handleClick(e) {
+      const index = parseInt(e.target.dataset.index);
+      if (highlighted.includes(index) && !userSelected.includes(index)) {
+        userSelected.push(index);
+        e.target.style.background = 'limegreen';
+        if (userSelected.length === highlighted.length) {
+          level++;
+          setTimeout(startLevel, 1000);
+        }
+      } else {
+        e.target.classList.add("wrong");
+        alert(`Game Over! Final level: ${level}`);
+        location.reload();
+      }
+    }
+
+    function startLevel() {
+      userSelected = [];
+      levelText.textContent = `Level: ${level}`;
+      const gridSize = Math.min(5 + Math.floor(level / 3), 8);
+      generateGrid(gridSize);
+      highlightRandomCells(gridSize);
+    }
+
+    startLevel();
+  </script>
+</body>
+</html>
 
