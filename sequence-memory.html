@@ -2,113 +2,91 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sequence Memory</title>
 <style>
-  body {
+  html, body {
+    margin: 0; padding: 0; height: 100%;
     background: #111;
     color: white;
     font-family: sans-serif;
-    text-align: center;
-    padding: 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
     transition: background 0.3s, color 0.3s;
   }
-  .light {
+  body.light {
     background: #f4f4f4;
     color: #111;
   }
   #backButton {
-    position: absolute;
-    top: 20px; left: 20px;
+    position: fixed; top: 20px; left: 20px;
     padding: 10px 15px;
-    background: #444;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+    background: #444; border: none; border-radius: 5px;
+    color: white; cursor: pointer;
   }
   #backButton:hover {
     background: #666;
   }
-  #buttons {
-    margin-top: 30px;
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 60px;
+    width: 90vw;
+    max-width: 600px;
+  }
+  .tile {
+    background: #333;
+    border-radius: 10px;
+    cursor: pointer;
     display: flex;
     justify-content: center;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  button {
-    font-size: 1.3em;
-    padding: 15px 25px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    background: #444;
-    color: white;
+    align-items: center;
+    transition: background-color 0.3s, transform 0.3s;
     user-select: none;
   }
-  button:active {
-    background: #666;
+  body.light .tile {
+    background: #ccc;
   }
-  button.disabled {
-    background: #222;
-    cursor: default;
-  }
-  #message {
-    margin-top: 20px;
-    font-size: 1.2em;
+  .tile.active {
+    background: #4CAF50 !important;
+    transform: scale(1.1);
   }
 </style>
 </head>
 <body>
 <button id="backButton" onclick="window.location.href='index.html'">← Back</button>
-<h1>Sequence Memory</h1>
-
-<div id="buttons"></div>
-<div id="message"></div>
-
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
+<div id="message">Watch the sequence, then repeat by clicking tiles in order.</div>
+<div id="grid"></div>
 
 <script>
-  // Firebase config
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "benchmark-f06e7.firebaseapp.com",
-    databaseURL: "https://benchmark-f06e7-default-rtdb.firebaseio.com/",
-    projectId: "benchmark-f06e7",
-    storageBucket: "benchmark-f06e7.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-
-  const buttonsDiv = document.getElementById("buttons");
-  const message = document.getElementById("message");
-
-  const options = ["A", "S", "D", "F", "J", "K", "L", ";"];
+  const grid = document.getElementById('grid');
+  const message = document.getElementById('message');
   let sequence = [];
   let userIndex = 0;
   let level = 1;
   let inputEnabled = false;
 
-  function createButtons() {
-    buttonsDiv.innerHTML = "";
-    options.forEach(opt => {
-      const btn = document.createElement("button");
-      btn.textContent = opt;
-      btn.id = "btn-" + opt;
-      btn.addEventListener("click", () => handleUserInput(opt));
-      buttonsDiv.appendChild(btn);
-    });
+  // Create tiles
+  function createTiles(tileSize) {
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = `repeat(4, ${tileSize}px)`;
+    grid.style.gridTemplateRows = `repeat(4, ${tileSize}px)`;
+    for(let i=0; i<16; i++) {
+      const tile = document.createElement('div');
+      tile.classList.add('tile');
+      tile.style.width = tileSize + 'px';
+      tile.style.height = tileSize + 'px';
+      tile.dataset.index = i;
+      grid.appendChild(tile);
+    }
   }
 
-  function flashButton(opt) {
-    const btn = document.getElementById("btn-" + opt);
-    if (!btn) return;
-    btn.classList.add("disabled");
-    setTimeout(() => btn.classList.remove("disabled"), 500);
+  function getRandomTile() {
+    return Math.floor(Math.random() * 16);
   }
 
   function playSequence() {
@@ -116,44 +94,57 @@
     let i = 0;
     message.textContent = "Watch the sequence...";
     const interval = setInterval(() => {
-      if(i >= sequence.length) {
+      if(i > 0) {
+        const prevTile = grid.querySelector(`.tile[data-index='${sequence[i-1]}']`);
+        prevTile.classList.remove('active');
+      }
+      if(i === sequence.length) {
         clearInterval(interval);
         inputEnabled = true;
-        message.textContent = "Repeat the sequence by clicking buttons.";
         userIndex = 0;
+        message.textContent = "Your turn! Click the tiles in order.";
         return;
       }
-      flashButton(sequence[i]);
+      const tile = grid.querySelector(`.tile[data-index='${sequence[i]}']`);
+      tile.classList.add('active');
       i++;
     }, 800);
   }
 
   function nextLevel() {
-    sequence.push(options[Math.floor(Math.random() * options.length)]);
+    // Increase tile size as level grows (min 40px, max 100px)
+    let tileSize = Math.min(40 + level * 3, 100);
+    createTiles(tileSize);
+
+    sequence.push(getRandomTile());
     playSequence();
-    level = sequence.length;
   }
 
-  function handleUserInput(opt) {
+  grid.addEventListener('click', e => {
     if(!inputEnabled) return;
+    if(!e.target.classList.contains('tile')) return;
 
-    if(opt === sequence[userIndex]) {
+    const clickedIndex = parseInt(e.target.dataset.index);
+    if(clickedIndex === sequence[userIndex]) {
+      e.target.classList.add('active');
+      setTimeout(() => e.target.classList.remove('active'), 300);
       userIndex++;
       if(userIndex === sequence.length) {
-        message.textContent = "Correct! Next round...";
         inputEnabled = false;
-        setTimeout(nextLevel, 1000);
+        message.textContent = "Correct! Next level...";
+        level++;
+        setTimeout(nextLevel, 1500);
       }
     } else {
       gameOver();
     }
-  }
+  });
 
   function gameOver() {
     message.textContent = `Game Over! You reached level ${level}.`;
     saveScore(level);
     sequence = [];
-    level = 0;
+    level = 1;
     inputEnabled = false;
     setTimeout(() => {
       message.textContent = "Starting new game...";
@@ -162,26 +153,22 @@
   }
 
   function saveScore(score) {
-    const best = parseInt(localStorage.getItem("sequenceMemory")) || 0;
-    if(score > best) {
+    let best = localStorage.getItem("sequenceMemory");
+    if(!best || score > best) {
       localStorage.setItem("sequenceMemory", score);
     }
     const name = prompt("Enter your name for leaderboard:");
     if(name) {
-      db.ref("sequenceMemoryScores").push({
-        name,
-        level: score
-      });
+      // Firebase submission placeholder
+      console.log(`Name: ${name}, Sequence Memory Level: ${score}`);
     }
   }
 
   window.onload = () => {
-    createButtons();
-    nextLevel();
-
     if(localStorage.getItem("theme") === "light") {
       document.body.classList.add("light");
     }
+    nextLevel();
   };
 </script>
 </body>
