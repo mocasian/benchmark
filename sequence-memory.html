@@ -1,128 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Sequence Memory</title>
-  <style>
-    body {
-      background: #111;
-      color: white;
-      text-align: center;
-      font-family: sans-serif;
-      margin: 0;
-      padding: 20px;
-    }
-    #grid {
-      display: grid;
-      grid-template-columns: repeat(3, 100px);
-      gap: 10px;
-      justify-content: center;
-      margin-top: 20px;
-    }
-    .tile {
-      width: 100px;
-      height: 100px;
-      background: #444;
-      border-radius: 8px;
-      transition: background 0.2s;
-    }
-    .active {
-      background: #00ccff;
-    }
-    #level {
-      font-size: 24px;
-      margin-top: 10px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>Sequence Memory</title>
+<style>
+  body {
+    background: #111;
+    color: white;
+    font-family: sans-serif;
+    text-align: center;
+    padding: 50px;
+    transition: background 0.3s, color 0.3s;
+  }
+  .light {
+    background: #f4f4f4;
+    color: #111;
+  }
+  #backButton {
+    position: absolute;
+    top: 20px; left: 20px;
+    padding: 10px 15px;
+    background: #444;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  #backButton:hover {
+    background: #666;
+  }
+  #buttons {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  button {
+    font-size: 1.3em;
+    padding: 15px 25px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    background: #444;
+    color: white;
+    user-select: none;
+  }
+  button:active {
+    background: #666;
+  }
+  button.disabled {
+    background: #222;
+    cursor: default;
+  }
+  #message {
+    margin-top: 20px;
+    font-size: 1.2em;
+  }
+</style>
 </head>
 <body>
-  <h1>Sequence Memory</h1>
-  <div id="level">Level: 1</div>
-  <div id="grid"></div>
+<button id="backButton" onclick="window.location.href='index.html'">← Back</button>
+<h1>Sequence Memory</h1>
 
-  <script>
-    const grid = document.getElementById('grid');
-    const levelDisplay = document.getElementById('level');
-    let sequence = [];
-    let userInput = [];
-    let level = 1;
-    const tiles = [];
+<div id="buttons"></div>
+<div id="message"></div>
 
-    function updateBest(level) {
-      const best = localStorage.getItem('sequenceMemoryBest') || 1;
-      if (level > best) {
-        localStorage.setItem('sequenceMemoryBest', level);
-      }
-      levelDisplay.textContent = `Level: ${level} 🏆 Best: ${localStorage.getItem('sequenceMemoryBest')}`;
-    }
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
 
-    function generateSequence(n) {
-      const seq = [];
-      for (let i = 0; i < n; i++) {
-        seq.push(Math.floor(Math.random() * 9));
-      }
-      return seq;
-    }
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "benchmark-f06e7.firebaseapp.com",
+    databaseURL: "https://benchmark-f06e7-default-rtdb.firebaseio.com/",
+    projectId: "benchmark-f06e7",
+    storageBucket: "benchmark-f06e7.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-    function flashTile(index) {
-      tiles[index].classList.add('active');
-      setTimeout(() => tiles[index].classList.remove('active'), 400);
-    }
+  const buttonsDiv = document.getElementById("buttons");
+  const message = document.getElementById("message");
 
-    function playSequence() {
-      let delay = 0;
-      sequence.forEach((index, i) => {
-        setTimeout(() => flashTile(index), delay);
-        delay += 600;
-      });
-    }
+  const options = ["A", "S", "D", "F", "J", "K", "L", ";"];
+  let sequence = [];
+  let userIndex = 0;
+  let level = 1;
+  let inputEnabled = false;
 
-    function checkInput(index) {
-      if (index !== sequence[userInput.length]) {
-        alert(`Game Over! You reached level ${level}.`);
-        level = 1;
-        startLevel();
+  function createButtons() {
+    buttonsDiv.innerHTML = "";
+    options.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.textContent = opt;
+      btn.id = "btn-" + opt;
+      btn.addEventListener("click", () => handleUserInput(opt));
+      buttonsDiv.appendChild(btn);
+    });
+  }
+
+  function flashButton(opt) {
+    const btn = document.getElementById("btn-" + opt);
+    if (!btn) return;
+    btn.classList.add("disabled");
+    setTimeout(() => btn.classList.remove("disabled"), 500);
+  }
+
+  function playSequence() {
+    inputEnabled = false;
+    let i = 0;
+    message.textContent = "Watch the sequence...";
+    const interval = setInterval(() => {
+      if(i >= sequence.length) {
+        clearInterval(interval);
+        inputEnabled = true;
+        message.textContent = "Repeat the sequence by clicking buttons.";
+        userIndex = 0;
         return;
       }
-      userInput.push(index);
-      if (userInput.length === sequence.length) {
-        level++;
-        setTimeout(startLevel, 1000);
+      flashButton(sequence[i]);
+      i++;
+    }, 800);
+  }
+
+  function nextLevel() {
+    sequence.push(options[Math.floor(Math.random() * options.length)]);
+    playSequence();
+    level = sequence.length;
+  }
+
+  function handleUserInput(opt) {
+    if(!inputEnabled) return;
+
+    if(opt === sequence[userIndex]) {
+      userIndex++;
+      if(userIndex === sequence.length) {
+        message.textContent = "Correct! Next round...";
+        inputEnabled = false;
+        setTimeout(nextLevel, 1000);
       }
+    } else {
+      gameOver();
     }
+  }
 
-    function startLevel() {
-      updateBest(level);
-      userInput = [];
-      sequence = generateSequence(level);
-      playSequence();
+  function gameOver() {
+    message.textContent = `Game Over! You reached level ${level}.`;
+    saveScore(level);
+    sequence = [];
+    level = 0;
+    inputEnabled = false;
+    setTimeout(() => {
+      message.textContent = "Starting new game...";
+      nextLevel();
+    }, 3000);
+  }
+
+  function saveScore(score) {
+    const best = parseInt(localStorage.getItem("sequenceMemory")) || 0;
+    if(score > best) {
+      localStorage.setItem("sequenceMemory", score);
     }
-
-    // Init grid
-    for (let i = 0; i < 9; i++) {
-      const tile = document.createElement('div');
-      tile.className = 'tile';
-      tile.addEventListener('click', () => checkInput(i));
-      tiles.push(tile);
-      grid.appendChild(tile);
+    const name = prompt("Enter your name for leaderboard:");
+    if(name) {
+      db.ref("sequenceMemoryScores").push({
+        name,
+        level: score
+      });
     }
+  }
 
-    startLevel();
-  </script>
+  window.onload = () => {
+    createButtons();
+    nextLevel();
 
-  <a href="index.html" style="
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  background: #555;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 5px;
-  text-decoration: none;
-  font-family: sans-serif;
-  font-size: 14px;
-  z-index: 999;
-">← Back</a>
-
+    if(localStorage.getItem("theme") === "light") {
+      document.body.classList.add("light");
+    }
+  };
+</script>
 </body>
 </html>
