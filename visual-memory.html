@@ -7,95 +7,102 @@
     body {
       background: #111;
       color: white;
-      font-family: sans-serif;
       text-align: center;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 20px;
     }
     #grid {
       display: grid;
+      grid-template-columns: repeat(5, 80px);
+      gap: 10px;
       justify-content: center;
-      margin-top: 30px;
-      gap: 5px;
+      margin-top: 20px;
     }
-    .cell {
-      width: 40px;
-      height: 40px;
-      background: #333;
-      border-radius: 5px;
-      cursor: pointer;
+    .tile {
+      width: 80px;
+      height: 80px;
+      background: #444;
+      border-radius: 8px;
+      transition: background 0.2s;
     }
-    .highlight {
-      background: limegreen;
+    .active {
+      background: #00ff88;
     }
-    .wrong {
-      background: red !important;
+    #level {
+      font-size: 24px;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <h1>Visual Memory</h1>
-  <p id="level">Level: 1</p>
+  <div id="level">Level: 1</div>
   <div id="grid"></div>
 
   <script>
-    const grid = document.getElementById("grid");
-    const levelText = document.getElementById("level");
-    let level = 1, highlighted = [], userSelected = [];
+    const grid = document.getElementById('grid');
+    const levelDisplay = document.getElementById('level');
+    let activeIndices = [];
+    let level = 1;
+    let clickable = false;
+    const tiles = [];
 
-    function generateGrid(size) {
-      grid.innerHTML = '';
-      grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-      const total = size * size;
-      for (let i = 0; i < total; i++) {
-        const cell = document.createElement("div");
-        cell.classList.add("cell");
-        cell.dataset.index = i;
-        cell.addEventListener("click", handleClick);
-        grid.appendChild(cell);
+    function updateBest(level) {
+      const best = localStorage.getItem('visualMemoryBest') || 1;
+      if (level > best) {
+        localStorage.setItem('visualMemoryBest', level);
       }
+      levelDisplay.textContent = `Level: ${level} 🏆 Best: ${localStorage.getItem('visualMemoryBest')}`;
     }
 
-    function highlightRandomCells(size) {
-      const total = size * size;
-      const cellsToHighlight = level + 2;
-      highlighted = [];
-      while (highlighted.length < cellsToHighlight) {
-        const index = Math.floor(Math.random() * total);
-        if (!highlighted.includes(index)) {
-          highlighted.push(index);
-          grid.children[index].classList.add("highlight");
-        }
+    function randomTiles(n) {
+      const indices = [];
+      while (indices.length < n) {
+        let i = Math.floor(Math.random() * tiles.length);
+        if (!indices.includes(i)) indices.push(i);
       }
-      setTimeout(() => {
-        highlighted.forEach(i => grid.children[i].classList.remove("highlight"));
-      }, 1000 + level * 100);
-    }
-
-    function handleClick(e) {
-      const index = parseInt(e.target.dataset.index);
-      if (highlighted.includes(index) && !userSelected.includes(index)) {
-        userSelected.push(index);
-        e.target.style.background = 'limegreen';
-        if (userSelected.length === highlighted.length) {
-          level++;
-          setTimeout(startLevel, 1000);
-        }
-      } else {
-        e.target.classList.add("wrong");
-        alert(`Game Over! Final level: ${level}`);
-        location.reload();
-      }
+      return indices;
     }
 
     function startLevel() {
-      userSelected = [];
-      levelText.textContent = `Level: ${level}`;
-      const gridSize = Math.min(5 + Math.floor(level / 3), 8);
-      generateGrid(gridSize);
-      highlightRandomCells(gridSize);
+      updateBest(level);
+      clickable = false;
+      activeIndices = randomTiles(level + 2);
+      tiles.forEach(t => t.classList.remove('active'));
+      activeIndices.forEach(i => tiles[i].classList.add('active'));
+      setTimeout(() => {
+        tiles.forEach(t => t.classList.remove('active'));
+        clickable = true;
+      }, 1000 + level * 100);
+    }
+
+    function handleClick(i) {
+      if (!clickable) return;
+      if (!activeIndices.includes(i)) {
+        alert(`Wrong! You reached level ${level}.`);
+        level = 1;
+        startLevel();
+        return;
+      }
+      tiles[i].classList.add('active');
+      activeIndices = activeIndices.filter(idx => idx !== i);
+      if (activeIndices.length === 0) {
+        level++;
+        setTimeout(startLevel, 1000);
+      }
+    }
+
+    // Init grid
+    for (let i = 0; i < 25; i++) {
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.addEventListener('click', () => handleClick(i));
+      tiles.push(tile);
+      grid.appendChild(tile);
     }
 
     startLevel();
   </script>
 </body>
 </html>
-
