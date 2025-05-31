@@ -1,43 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Benchmark Game Hub</title>
+  <meta charset="UTF-8">
+  <title>Human Benchmark Games</title>
   <style>
+    :root {
+      --bg-dark: #111;
+      --text-dark: #fff;
+      --bg-light: #f4f4f4;
+      --text-light: #000;
+    }
+
     body {
       font-family: sans-serif;
-      text-align: center;
-      background: #111;
-      color: white;
       margin: 0;
-      padding: 50px;
+      padding: 20px;
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+      transition: background 0.3s, color 0.3s;
     }
+
+    body.light {
+      background-color: var(--bg-light);
+      color: var(--text-light);
+    }
+
     h1 {
-      font-size: 40px;
+      text-align: center;
     }
-    a {
-      display: block;
-      margin: 20px auto;
-      padding: 15px 30px;
-      background: #222;
+
+    #theme-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 5px;
+      background: #888;
+      color: white;
+    }
+
+    .game-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .game-link {
+      padding: 12px;
+      background: #333;
+      border-radius: 8px;
+      text-align: center;
       color: white;
       text-decoration: none;
-      width: 300px;
-      border-radius: 10px;
-      font-size: 20px;
+      font-size: 18px;
       transition: background 0.3s;
     }
-    a:hover {
-      background: #444;
+
+    body.light .game-link {
+      background: #ccc;
+      color: black;
+    }
+
+    .game-link:hover {
+      background: #555;
+    }
+
+    body.light .game-link:hover {
+      background: #aaa;
+    }
+
+    #scores {
+      margin-top: 30px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    #scores h2 {
+      text-align: center;
+    }
+
+    #scores ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    #scores li {
+      margin: 5px 0;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
-  <h1>🧠 Human Benchmark Games</h1>
-  <a href="reaction-time.html">Reaction Time</a>
-  <a href="number-memory.html">Number Memory</a>
-  <a href="aim-trainer.html">Aim Trainer</a>
-  <a href="sequence-memory.html">Sequence Memory</a>
-  <a href="visual-memory.html">Visual Memory</a>
+  <button id="theme-toggle">Toggle Theme</button>
+  <h1>Human Benchmark Games</h1>
+
+  <div class="game-list">
+    <a class="game-link" href="reaction-time.html">🟥 Reaction Time</a>
+    <a class="game-link" href="sequence-memory.html">🔢 Sequence Memory</a>
+    <a class="game-link" href="number-memory.html">🔢 Number Memory</a>
+    <a class="game-link" href="visual-memory.html">🟩 Visual Memory</a>
+    <a class="game-link" href="aim-trainer.html">🎯 Aim Trainer</a>
+  </div>
+
+  <div id="scores">
+    <h2>🏆 High Scores</h2>
+    <ul>
+      <li>Reaction Time: <strong id="score-reaction">—</strong></li>
+      <li>Number Memory: <strong id="score-number">—</strong></li>
+      <li>Sequence Memory: <strong id="score-sequence">—</strong></li>
+      <li>Visual Memory: <strong id="score-visual">—</strong></li>
+      <li>Aim Trainer: <strong id="score-aim">—</strong></li>
+    </ul>
+  </div>
+
+  <script>
+    // Theme toggle
+    const toggleBtn = document.getElementById('theme-toggle');
+    toggleBtn.addEventListener('click', () => {
+      document.body.classList.toggle('light');
+      localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
+    });
+
+    // Load saved theme
+    if (localStorage.getItem('theme') === 'light') {
+      document.body.classList.add('light');
+    }
+
+    // Display high scores
+    document.getElementById('score-reaction').textContent = localStorage.getItem('bestTime') + 'ms' || '—';
+    document.getElementById('score-number').textContent = 'Level ' + localStorage.getItem('numberMemoryBest') || '—';
+    document.getElementById('score-sequence').textContent = 'Level ' + localStorage.getItem('sequenceMemoryBest') || '—';
+    document.getElementById('score-visual').textContent = 'Level ' + localStorage.getItem('visualMemoryBest') || '—';
+    document.getElementById('score-aim').textContent = localStorage.getItem('aimTrainerBest') + 'ms' || '—';
+  </script>
 </body>
 </html>
