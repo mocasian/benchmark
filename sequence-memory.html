@@ -87,6 +87,14 @@
         setTimeout(nextLevel, 1000);
       }
     }
+    function updateBest(level) {
+  const best = localStorage.getItem('sequenceMemoryBest') || 1;
+  if (level > best) {
+    localStorage.setItem('sequenceMemoryBest', level);
+  }
+  document.getElementById('level').textContent = `Level: ${level} 🏆 Best: ${localStorage.getItem('sequenceMemoryBest')}`;
+}
+
 
     nextLevel();
   </script>
