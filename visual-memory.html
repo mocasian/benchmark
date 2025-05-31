@@ -1,123 +1,192 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Visual Memory</title>
-  <style>
-    body {
-      background: #111;
-      color: white;
-      text-align: center;
-      font-family: sans-serif;
-      margin: 0;
-      padding: 20px;
-    }
-    #grid {
-      display: grid;
-      grid-template-columns: repeat(5, 80px);
-      gap: 10px;
-      justify-content: center;
-      margin-top: 20px;
-    }
-    .tile {
-      width: 80px;
-      height: 80px;
-      background: #444;
-      border-radius: 8px;
-      transition: background 0.2s;
-    }
-    .active {
-      background: #00ff88;
-    }
-    #level {
-      font-size: 24px;
-      margin-top: 10px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>Visual Memory</title>
+<style>
+  body {
+    background: #111;
+    color: white;
+    font-family: sans-serif;
+    text-align: center;
+    padding: 50px;
+    transition: background 0.3s, color 0.3s;
+  }
+  .light {
+    background: #f4f4f4;
+    color: #111;
+  }
+  #backButton {
+    position: absolute;
+    top: 20px; left: 20px;
+    padding: 10px 15px;
+    background: #444;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  #backButton:hover {
+    background: #666;
+  }
+  #grid {
+    margin: 20px auto;
+    display: grid;
+    grid-template-columns: repeat(4, 60px);
+    grid-gap: 15px;
+    justify-content: center;
+  }
+  .box {
+    width: 60px;
+    height: 60px;
+    background: #555;
+    cursor: pointer;
+    border-radius: 5px;
+    user-select: none;
+    transition: background 0.3s;
+  }
+  .highlight {
+    background: yellow !important;
+  }
+  #message {
+    margin-top: 20px;
+    font-size: 1.2em;
+  }
+</style>
 </head>
 <body>
-  <h1>Visual Memory</h1>
-  <div id="level">Level: 1</div>
-  <div id="grid"></div>
+<button id="backButton" onclick="window.location.href='index.html'">← Back</button>
+<h1>Visual Memory</h1>
 
-  <script>
-    const grid = document.getElementById('grid');
-    const levelDisplay = document.getElementById('level');
-    let activeIndices = [];
-    let level = 1;
-    let clickable = false;
-    const tiles = [];
+<div id="grid"></div>
+<div id="message"></div>
 
-    function updateBest(level) {
-      const best = localStorage.getItem('visualMemoryBest') || 1;
-      if (level > best) {
-        localStorage.setItem('visualMemoryBest', level);
-      }
-      levelDisplay.textContent = `Level: ${level} 🏆 Best: ${localStorage.getItem('visualMemoryBest')}`;
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
+
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "benchmark-f06e7.firebaseapp.com",
+    databaseURL: "https://benchmark-f06e7-default-rtdb.firebaseio.com/",
+    projectId: "benchmark-f06e7",
+    storageBucket: "benchmark-f06e7.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const grid = document.getElementById("grid");
+  const message = document.getElementById("message");
+
+  let sequence = [];
+  let userSequence = [];
+  let level = 1;
+  const gridSize = 16;
+
+  function createGrid() {
+    grid.innerHTML = "";
+    for(let i=0; i<gridSize; i++) {
+      const box = document.createElement("div");
+      box.classList.add("box");
+      box.dataset.index = i;
+      box.addEventListener("click", boxClick);
+      grid.appendChild(box);
     }
+  }
 
-    function randomTiles(n) {
-      const indices = [];
-      while (indices.length < n) {
-        let i = Math.floor(Math.random() * tiles.length);
-        if (!indices.includes(i)) indices.push(i);
-      }
-      return indices;
-    }
+  function boxClick(e) {
+    if(userSequence.length >= sequence.length) return; // Ignore if user finished input
+    const index = parseInt(e.target.dataset.index);
+    userSequence.push(index);
+    e.target.classList.add("highlight");
+    setTimeout(() => e.target.classList.remove("highlight"), 300);
+    checkUserInput();
+  }
 
-    function startLevel() {
-      updateBest(level);
-      clickable = false;
-      activeIndices = randomTiles(level + 2);
-      tiles.forEach(t => t.classList.remove('active'));
-      activeIndices.forEach(i => tiles[i].classList.add('active'));
-      setTimeout(() => {
-        tiles.forEach(t => t.classList.remove('active'));
-        clickable = true;
-      }, 1000 + level * 100);
-    }
-
-    function handleClick(i) {
-      if (!clickable) return;
-      if (!activeIndices.includes(i)) {
-        alert(`Wrong! You reached level ${level}.`);
-        level = 1;
-        startLevel();
+  function highlightSequence(seq) {
+    let i = 0;
+    const interval = setInterval(() => {
+      if(i >= seq.length) {
+        clearInterval(interval);
+        enableUserInput();
         return;
       }
-      tiles[i].classList.add('active');
-      activeIndices = activeIndices.filter(idx => idx !== i);
-      if (activeIndices.length === 0) {
-        level++;
-        setTimeout(startLevel, 1000);
+      const idx = seq[i];
+      const box = grid.querySelector(`[data-index='${idx}']`);
+      box.classList.add("highlight");
+      setTimeout(() => box.classList.remove("highlight"), 500);
+      i++;
+    }, 700);
+  }
+
+  function enableUserInput() {
+    message.textContent = "Your turn: repeat the sequence by clicking boxes.";
+    userSequence = [];
+  }
+
+  function checkUserInput() {
+    for(let i=0; i<userSequence.length; i++) {
+      if(userSequence[i] !== sequence[i]) {
+        gameOver();
+        return;
       }
     }
-
-    // Init grid
-    for (let i = 0; i < 25; i++) {
-      const tile = document.createElement('div');
-      tile.className = 'tile';
-      tile.addEventListener('click', () => handleClick(i));
-      tiles.push(tile);
-      grid.appendChild(tile);
+    if(userSequence.length === sequence.length) {
+      level++;
+      message.textContent = "Correct! Next round...";
+      setTimeout(nextRound, 1000);
     }
+  }
 
-    startLevel();
-  </script>
+  function nextRound() {
+    userSequence = [];
+    sequence.push(Math.floor(Math.random()*gridSize));
+    message.textContent = "Watch the sequence...";
+    highlightSequence(sequence);
+  }
 
-  <a href="index.html" style="
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  background: #555;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 5px;
-  text-decoration: none;
-  font-family: sans-serif;
-  font-size: 14px;
-  z-index: 999;
-">← Back</a>
+  function gameOver() {
+    message.textContent = `Game Over! You reached level ${level}.`;
+    saveScore(level);
+    sequence = [];
+    userSequence = [];
+    level = 1;
+    setTimeout(() => {
+      message.textContent = "Starting new game...";
+      sequence.push(Math.floor(Math.random()*gridSize));
+      highlightSequence(sequence);
+    }, 3000);
+  }
 
+  function saveScore(score) {
+    const best = parseInt(localStorage.getItem("visualMemory")) || 0;
+    if(score > best) {
+      localStorage.setItem("visualMemory", score);
+    }
+    const name = prompt("Enter your name for leaderboard:");
+    if(name) {
+      db.ref("visualMemoryScores").push({
+        name,
+        level: score
+      });
+    }
+  }
+
+  window.onload = () => {
+    createGrid();
+    sequence.push(Math.floor(Math.random()*gridSize));
+    message.textContent = "Watch the sequence...";
+    highlightSequence(sequence);
+
+    // Load theme
+    if(localStorage.getItem("theme") === "light") {
+      document.body.classList.add("light");
+    }
+  };
+</script>
 </body>
 </html>
