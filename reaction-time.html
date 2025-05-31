@@ -20,24 +20,44 @@
       background: red;
       font-size: 32px;
       cursor: pointer;
+      flex-direction: column;
+    }
+    #stats {
+      margin-top: 20px;
+      font-size: 20px;
     }
   </style>
 </head>
 <body>
-  <div id="box">Wait for green...</div>
+  <div id="box">
+    <div id="message">Wait for green...</div>
+    <div id="stats"></div>
+  </div>
 
   <script>
     const box = document.getElementById('box');
+    const message = document.getElementById('message');
+    const stats = document.getElementById('stats');
+
     let start, timeout;
     let clickable = false;
 
+    function updateStats(current = null) {
+      const best = localStorage.getItem('bestTime');
+      stats.innerHTML = `
+        ${current ? `Your time: <strong>${current}ms</strong><br>` : ''}
+        Best time: <strong>${best ? best + 'ms' : '—'}</strong>
+      `;
+    }
+
     function reset() {
       box.style.background = 'red';
-      box.textContent = 'Wait for green...';
+      message.textContent = 'Wait for green...';
       clickable = false;
+      updateStats();
       timeout = setTimeout(() => {
         box.style.background = 'green';
-        box.textContent = 'CLICK or PRESS K/SPACE!';
+        message.textContent = 'CLICK or PRESS K/SPACE!';
         start = new Date().getTime();
         clickable = true;
       }, Math.random() * 3000 + 2000);
@@ -46,13 +66,19 @@
     function handleAction() {
       if (!clickable && box.style.background === 'red') {
         clearTimeout(timeout);
-        box.textContent = 'Too early! Click or press to restart.';
+        message.textContent = 'Too early! Click or press to restart.';
         box.style.background = '#222';
       } else if (clickable && box.style.background === 'green') {
         let reaction = new Date().getTime() - start;
-        box.textContent = `Your time: ${reaction}ms. Click or press to try again.`;
+        message.textContent = `Your time: ${reaction}ms. Click or press to try again.`;
         box.style.background = '#222';
         clickable = false;
+
+        let best = localStorage.getItem('bestTime');
+        if (!best || reaction < parseInt(best)) {
+          localStorage.setItem('bestTime', reaction);
+        }
+        updateStats(reaction);
       } else {
         reset();
       }
