@@ -1,62 +1,61 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Number Memory</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      margin-top: 100px;
-      background: #111;
-      color: white;
-    }
-    input {
-      padding: 10px;
-      font-size: 20px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Number Memory</h1>
-  <div id="game">
-    <div id="number"></div>
-    <div id="input" style="display:none;">
-      <input id="guess" type="text" />
-      <button onclick="check()">Submit</button>
-    </div>
-  </div>
-  <script>
-    let level = 1;
-    let number = "";
+<script>
+  const game = document.getElementById('game');
+  const input = document.getElementById('input');
+  const submit = document.getElementById('submit');
+  const numberDisplay = document.getElementById('number');
+  const levelDisplay = document.getElementById('level');
+  const bestDisplay = document.createElement('div');
 
-    function startLevel() {
-      number = "";
-      for (let i = 0; i < level; i++) {
-        number += Math.floor(Math.random() * 10);
-      }
-      document.getElementById("number").textContent = number;
-      document.getElementById("input").style.display = "none";
-      setTimeout(() => {
-        document.getElementById("number").textContent = "";
-        document.getElementById("input").style.display = "block";
-        document.getElementById("guess").value = "";
-        document.getElementById("guess").focus();
-      }, 2000 + level * 300);
+  document.body.appendChild(bestDisplay);
+
+  let level = 1;
+  let number = '';
+
+  function updateBest(level) {
+    let best = localStorage.getItem('numberMemoryBest') || 0;
+    if (level > best) {
+      localStorage.setItem('numberMemoryBest', level);
     }
+    bestDisplay.textContent = `🏆 Best Level: ${localStorage.getItem('numberMemoryBest')}`;
+  }
 
-    function check() {
-      const guess = document.getElementById("guess").value;
-      if (guess === number) {
-        level++;
-        startLevel();
-      } else {
-        document.getElementById("game").innerHTML = `<h2>Game Over! You reached level ${level}.</h2><button onclick="location.reload()">Try Again</button>`;
-      }
+  function generateNumber(length) {
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += Math.floor(Math.random() * 10);
     }
+    return result;
+  }
 
-    startLevel();
-  </script>
-</body>
-</html>
+  function showNumber() {
+    input.style.display = 'none';
+    submit.style.display = 'none';
+    number = generateNumber(level + 1);
+    numberDisplay.textContent = number;
+    setTimeout(() => {
+      numberDisplay.textContent = '';
+      input.value = '';
+      input.style.display = 'inline-block';
+      submit.style.display = 'inline-block';
+      input.focus();
+    }, 1000 + level * 250);
+  }
 
+  submit.addEventListener('click', () => {
+    if (input.value === number) {
+      level++;
+      levelDisplay.textContent = `Level: ${level}`;
+      updateBest(level);
+      showNumber();
+    } else {
+      alert(`Game Over! Final level: ${level}`);
+      level = 1;
+      levelDisplay.textContent = `Level: ${level}`;
+      updateBest(level);
+      showNumber();
+    }
+  });
+
+  updateBest(level);
+  showNumber();
+</script>
