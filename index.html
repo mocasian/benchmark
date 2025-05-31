@@ -2,23 +2,52 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Game Leaderboards</title>
+  <title>Human Benchmark Clone</title>
   <style>
     body {
       background: #111;
       color: white;
       font-family: sans-serif;
       padding: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+    .light {
+      background: #f4f4f4;
+      color: #111;
     }
     h1, h2 {
       text-align: center;
     }
-    .leaderboard {
-      margin: 20px auto;
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    .buttons a {
+      text-decoration: none;
+      background: #444;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+    }
+    .buttons a:hover {
+      background: #666;
+    }
+    .toggle {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .leaderboard, .local-scores {
       max-width: 500px;
+      margin: 0 auto 40px auto;
       background: #222;
       padding: 15px;
       border-radius: 8px;
+    }
+    .light .leaderboard, .light .local-scores {
+      background: #ddd;
     }
     ul {
       list-style: none;
@@ -28,94 +57,112 @@
       padding: 5px 0;
       border-bottom: 1px solid #333;
     }
+    .light li {
+      border-color: #bbb;
+    }
   </style>
 </head>
 <body>
-  <h1>🌍 Global Leaderboards</h1>
+  <h1>🧠 Human Benchmark Clone</h1>
 
-  <div class="leaderboard">
-    <h2>Number Memory</h2>
-    <ul id="number-memory-list"></ul>
+  <div class="toggle">
+    <button onclick="toggleTheme()">Toggle Dark/Light</button>
+  </div>
+
+  <div class="buttons">
+    <a href="reaction.html">Reaction Time</a>
+    <a href="sequence.html">Sequence Memory</a>
+    <a href="number-memory.html">Number Memory</a>
+    <a href="visual.html">Visual Memory</a>
+    <a href="aim.html">Aim Trainer</a>
+  </div>
+
+  <div class="local-scores">
+    <h2>📊 Your High Scores</h2>
+    <ul id="localScores">
+      <li>Reaction Time: <span id="localReaction">–</span> ms</li>
+      <li>Sequence Memory: <span id="localSequence">–</span></li>
+      <li>Number Memory: <span id="localNumber">–</span></li>
+      <li>Visual Memory: <span id="localVisual">–</span></li>
+      <li>Aim Trainer: <span id="localAim">–</span> ms</li>
+    </ul>
   </div>
 
   <div class="leaderboard">
-    <h2>Reaction Time</h2>
-    <ul id="reaction-time-list"></ul>
+    <h2>🌍 Global Leaderboards</h2>
+    <ul id="leaderboard-number"></ul>
+    <ul id="leaderboard-reaction"></ul>
+    <ul id="leaderboard-sequence"></ul>
+    <ul id="leaderboard-visual"></ul>
+    <ul id="leaderboard-aim"></ul>
   </div>
 
-  <div class="leaderboard">
-    <h2>Sequence Memory</h2>
-    <ul id="sequence-memory-list"></ul>
-  </div>
-
-  <div class="leaderboard">
-    <h2>Visual Memory</h2>
-    <ul id="visual-memory-list"></ul>
-  </div>
-
-  <div class="leaderboard">
-    <h2>Aim Trainer</h2>
-    <ul id="aim-trainer-list"></ul>
-  </div>
-
-  <!-- Firebase SDKs -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
 
   <script>
-    // Replace with your Firebase project configuration
+    // Replace with your Firebase config:
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      authDomain: "benchmark-f06e7.firebaseapp.com",
+      databaseURL: "https://benchmark-f06e7-default-rtdb.firebaseio.com/",
+      projectId: "benchmark-f06e7",
+      storageBucket: "benchmark-f06e7.appspot.com",
       messagingSenderId: "YOUR_SENDER_ID",
       appId: "YOUR_APP_ID"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Function to load leaderboard data
-    function loadLeaderboard(gameKey, listId, scoreField, isLowerBetter = false) {
-      const list = document.getElementById(listId);
-      const ref = db.ref(gameKey);
-      const query = ref.orderByChild(scoreField);
-      const limitedQuery = isLowerBetter ? query.limitToFirst(10) : query.limitToLast(10);
+    function loadLeaderboard(path, elementId, key, unit = "", isLowerBetter = false) {
+      const ref = db.ref(path);
+      const query = ref.orderByChild(key);
+      const limit = isLowerBetter ? query.limitToFirst(10) : query.limitToLast(10);
 
-      limitedQuery.on("value", snapshot => {
+      limit.on("value", snapshot => {
         const scores = [];
-        snapshot.forEach(child => {
-          scores.push(child.val());
-        });
+        snapshot.forEach(child => scores.push(child.val()));
+        scores.sort((a, b) => isLowerBetter ? a[key] - b[key] : b[key] - a[key]);
 
-        // Sort scores
-        scores.sort((a, b) => {
-          if (isLowerBetter) {
-            return a[scoreField] - b[scoreField];
-          } else {
-            return b[scoreField] - a[scoreField];
-          }
-        });
-
-        // Display scores
-        list.innerHTML = '';
-        scores.forEach((entry, index) => {
-          const li = document.createElement("li");
-          li.textContent = `${index + 1}. ${entry.name} - ${entry[scoreField]}${scoreField === 'time' ? 'ms' : ''}`;
-          list.appendChild(li);
+        const ul = document.getElementById(elementId);
+        ul.innerHTML = `<li><strong>${path.replace("Scores", "")}</strong></li>`;
+        scores.forEach((entry, i) => {
+          const value = `${entry[key]}${unit}`;
+          ul.innerHTML += `<li>${i + 1}. ${entry.name || "Anonymous"} – ${value}</li>`;
         });
       });
     }
 
-    // Load leaderboards for each game
-    loadLeaderboard("numberMemoryScores", "number-memory-list", "level");
-    loadLeaderboard("reactionTimeScores", "reaction-time-list", "time", true);
-    loadLeaderboard("sequenceMemoryScores", "sequence-memory-list", "level");
-    loadLeaderboard("visualMemoryScores", "visual-memory-list", "level");
-    loadLeaderboard("aimTrainerScores", "aim-trainer-list", "time", true);
+    loadLeaderboard("numberMemoryScores", "leaderboard-number", "level");
+    loadLeaderboard("reactionTimeScores", "leaderboard-reaction", "time", "ms", true);
+    loadLeaderboard("sequenceMemoryScores", "leaderboard-sequence", "level");
+    loadLeaderboard("visualMemoryScores", "leaderboard-visual", "level");
+    loadLeaderboard("aimTrainerScores", "leaderboard-aim", "time", "ms", true);
+
+    // Local Storage Display
+    function displayLocalScores() {
+      document.getElementById("localReaction").textContent = localStorage.getItem("reactionTime") || "–";
+      document.getElementById("localSequence").textContent = localStorage.getItem("sequenceMemory") || "–";
+      document.getElementById("localNumber").textContent = localStorage.getItem("numberMemory") || "–";
+      document.getElementById("localVisual").textContent = localStorage.getItem("visualMemory") || "–";
+      document.getElementById("localAim").textContent = localStorage.getItem("aimTrainer") || "–";
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+      document.body.classList.toggle("light");
+      localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
+    }
+
+    // Load saved theme
+    window.onload = () => {
+      if (localStorage.getItem("theme") === "light") {
+        document.body.classList.add("light");
+      }
+      displayLocalScores();
+    };
   </script>
 </body>
 </html>
