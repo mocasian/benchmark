@@ -1,62 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Reaction Time</title>
-  <style>
-    body {
-      background: #111;
-      color: white;
-      font-family: sans-serif;
-      text-align: center;
-      padding: 50px;
-    }
-    .light {
-      background: #f4f4f4;
-      color: #111;
-    }
-    #testArea {
-      width: 300px;
-      height: 300px;
-      margin: 0 auto;
-      background: #555;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 1.5em;
-    }
-    #backButton {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      padding: 10px 15px;
-      background: #444;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    #backButton:hover {
-      background: #666;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reaction Time Test</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    display: flex; justify-content: center; align-items: center;
+    background: #111; color: white; font-family: sans-serif;
+    user-select: none;
+    transition: background 0.3s, color 0.3s;
+  }
+  body.light {
+    background: #f4f4f4; color: #111;
+  }
+  #backButton {
+    position: fixed; top: 20px; left: 20px;
+    padding: 10px 15px;
+    background: #444; border: none; border-radius: 5px;
+    color: white; cursor: pointer;
+  }
+  #backButton:hover {
+    background: #666;
+  }
+  #box {
+    width: 90vw;
+    height: 90vh;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 8vw;
+    border-radius: 20px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.3s;
+  }
+  #message {
+    position: absolute;
+    bottom: 50px;
+    font-size: 2vw;
+    width: 100%;
+    text-align: center;
+  }
+</style>
 </head>
 <body>
-  <button id="backButton" onclick="window.location.href='index.html'">← Back</button>
-  <h1>Reaction Time</h1>
-  <div id="testArea">Click to start</div>
-  <div id="message"></div>
+<button id="backButton" onclick="window.location.href='index.html'">← Back</button>
+<div id="box">Wait for green...</div>
+<div id="message">Press Space or K as fast as you can when it turns green.</div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
+<script>
+  let box = document.getElementById("box");
+  let message = document.getElementById("message");
+  let waiting = true;
+  let startTime = 0;
+  let timeout;
 
-  <script>
-    // Firebase configuration
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "benchmark-f06e7.firebaseapp.com",
-      databaseURL: "https://benchmark
-::contentReference[oaicite:0]{index=0}
- 
+  function startTest() {
+    box.style.backgroundColor = '#111';
+    box.textContent = "Wait for green...";
+    message.textContent = "Press Space or K as fast as you can when it turns green.";
+    waiting = true;
+
+    let delay = Math.random() * 3000 + 2000; // 2-5 sec delay
+    timeout = setTimeout(() => {
+      box.style.backgroundColor = '#4CAF50';
+      box.textContent = "GO!";
+      startTime = performance.now();
+      waiting = false;
+    }, delay);
+  }
+
+  function endTest() {
+    if(waiting) {
+      // pressed too early
+      clearTimeout(timeout);
+      box.style.backgroundColor = 'red';
+      box.textContent = "Too soon! Wait for green.";
+      message.textContent = "Try again...";
+      setTimeout(startTest, 1500);
+      return;
+    }
+    let reactionTime = performance.now() - startTime;
+    reactionTime = Math.round(reactionTime);
+    box.style.backgroundColor = '#111';
+    box.textContent = `Your reaction time: ${reactionTime} ms`;
+    message.textContent = "Press Space or K to try again.";
+
+    // Save best score locally
+    let best = localStorage.getItem('reactionTimeBest');
+    if(!best || reactionTime < best) {
+      localStorage.setItem('reactionTimeBest', reactionTime);
+      message.textContent += " (New best!)";
+    }
+  }
+
+  document.body.addEventListener('keydown', e => {
+    if(e.code === 'Space' || e.key.toLowerCase() === 'k') {
+      if(box.textContent === "Wait for green..." || box.textContent === "GO!") {
+        endTest();
+      } else {
+        startTest();
+      }
+    }
+  });
+
+  box.addEventListener('click', () => {
+    if(box.textContent === "Wait for green..." || box.textContent === "GO!") {
+      endTest();
+    } else {
+      startTest();
+    }
+  });
+
+  window.onload = () => {
+    if(localStorage.getItem("theme") === "light") {
+      document.body.classList.add("light");
+    }
+    startTest();
+  };
+</script>
+</body>
+</html>
