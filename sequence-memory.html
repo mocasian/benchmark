@@ -1,1 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sequence Memory</title>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      text-align: center;
+      font-family: sans-serif;
+    }
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-gap: 10px;
+      justify-content: center;
+      margin-top: 50px;
+    }
+    .tile {
+      width: 100px;
+      height: 100px;
+      background: #333;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .active {
+      background: limegreen !important;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sequence Memory</h1>
+  <p id="level">Level: 1</p>
+  <div id="grid"></div>
+  <script>
+    const grid = document.getElementById('grid');
+    const levelText = document.getElementById('level');
+    let sequence = [], playerSeq = [], level = 1;
+    
+    // create 9 tiles
+    for (let i = 0; i < 9; i++) {
+      const tile = document.createElement('div');
+      tile.classList.add('tile');
+      tile.dataset.index = i;
+      tile.addEventListener('click', () => {
+        flash(tile);
+        playerSeq.push(parseInt(tile.dataset.index));
+        checkInput();
+      });
+      grid.appendChild(tile);
+    }
+
+    function flash(tile) {
+      tile.classList.add('active');
+      setTimeout(() => tile.classList.remove('active'), 400);
+    }
+
+    function playSequence() {
+      let i = 0;
+      const interval = setInterval(() => {
+        const index = sequence[i];
+        const tile = grid.children[index];
+        flash(tile);
+        i++;
+        if (i >= sequence.length) clearInterval(interval);
+      }, 600);
+    }
+
+    function nextLevel() {
+      levelText.textContent = `Level: ${level}`;
+      const next = Math.floor(Math.random() * 9);
+      sequence.push(next);
+      playerSeq = [];
+      setTimeout(playSequence, 500);
+    }
+
+    function checkInput() {
+      const i = playerSeq.length - 1;
+      if (playerSeq[i] !== sequence[i]) {
+        alert(`Game Over! Final level: ${level}`);
+        location.reload();
+      }
+      if (playerSeq.length === sequence.length) {
+        level++;
+        setTimeout(nextLevel, 1000);
+      }
+    }
+
+    nextLevel();
+  </script>
+</body>
+</html>
 
