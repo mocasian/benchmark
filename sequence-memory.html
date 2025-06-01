@@ -1,175 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sequence Memory</title>
-<style>
-  html, body {
-    margin: 0; padding: 0; height: 100vh;
-    background: #111;
-    color: white;
-    font-family: sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    user-select: none;
-    transition: background 0.3s, color 0.3s;
-  }
-  body.light {
-    background: #f4f4f4;
-    color: #111;
-  }
-  #backButton {
-    position: fixed; top: 20px; left: 20px;
-    padding: 10px 15px;
-    background: #444; border: none; border-radius: 5px;
-    color: white; cursor: pointer;
-  }
-  #backButton:hover {
-    background: #666;
-  }
-  #grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-top: 60px;
-    width: 90vw;
-    max-width: 600px;
-  }
-  .tile {
-    background: #333;
-    border-radius: 10px;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: background-color 0.3s, transform 0.3s;
-    user-select: none;
-  }
-  body.light .tile {
-    background: #ccc;
-  }
-  .tile.active {
-    background: #4CAF50 !important;
-    transform: scale(1.1);
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sequence Memory</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background: #111;
+      color: #fff;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #grid {
+      display: grid;
+      gap: 10px;
+      width: 90vmin;
+      height: 90vmin;
+    }
+    .tile {
+      background: #333;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .tile.active {
+      background: #4caf50;
+    }
+    #message {
+      margin-top: 20px;
+      font-size: 1.2em;
+    }
+  </style>
 </head>
 <body>
-<button id="backButton" onclick="window.location.href='index.html'">← Back</button>
-<div id="message">Watch the sequence, then repeat by clicking tiles in order.</div>
-<div id="grid"></div>
+  <div id="grid"></div>
+  <div id="message">Memorize the sequence</div>
 
-<script>
-  const grid = document.getElementById('grid');
-  const message = document.getElementById('message');
-  let sequence = [];
-  let userIndex = 0;
-  let level = 1;
-  let inputEnabled = false;
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
 
-  // Create tiles
-  function createTiles(tileSize) {
-    grid.innerHTML = '';
-    grid.style.gridTemplateColumns = `repeat(4, ${tileSize}px)`;
-    grid.style.gridTemplateRows = `repeat(4, ${tileSize}px)`;
-    for(let i=0; i<16; i++) {
-      const tile = document.createElement('div');
-      tile.classList.add('tile');
-      tile.style.width = tileSize + 'px';
-      tile.style.height = tileSize + 'px';
-      tile.dataset.index = i;
-      grid.appendChild(tile);
-    }
-  }
+  <script>
+    // TODO: Replace with your Firebase configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
 
-  function getRandomTile() {
-    return Math.floor(Math.random() * 16);
-  }
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-  function playSequence() {
-    inputEnabled = false;
-    let i = 0;
-    message.textContent = "Watch the sequence...";
-    const interval = setInterval(() => {
-      if(i > 0) {
-        const prevTile = grid.querySelector(`.tile[data-index='${sequence[i-1]}']`);
-        prevTile.classList.remove('active');
+    const grid = document.getElementById('grid');
+    const message = document.getElementById('message');
+    let level = 1;
+    let sequence = [];
+    let userSequence = [];
+    let inputEnabled = false;
+
+    function createGrid(size) {
+      grid.innerHTML = '';
+      grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+      grid.style.gridTemplateRows = `repeat(${size}, 1fr)`;
+      for (let i = 0; i < size * size; i++) {
+        const tile = document.createElement('div');
+        tile.classList.add('tile');
+        tile.dataset.index = i;
+        tile.addEventListener('click', handleTileClick);
+        grid.appendChild(tile);
       }
-      if(i === sequence.length) {
-        clearInterval(interval);
-        inputEnabled = true;
-        userIndex = 0;
-        message.textContent = "Your turn! Click the tiles in order.";
+    }
+
+    function generateSequence(length, max) {
+      const seq = [];
+      while (seq.length < length) {
+        const num = Math.floor(Math.random() * max);
+        if (!seq.includes(num)) {
+          seq.push(num);
+        }
+      }
+      return seq;
+    }
+
+    function highlightSequence(seq) {
+      let index = 0;
+      inputEnabled = false;
+      const tiles = document.querySelectorAll('.tile');
+      const interval = setInterval(() => {
+        if (index > 0) {
+          tiles[seq[index - 1]].classList.remove('active');
+        }
+        if (index === seq.length) {
+          clearInterval(interval);
+          inputEnabled = true;
+          message.textContent = 'Repeat the sequence';
+          return;
+        }
+        tiles[seq[index]].classList.add('active');
+        index++;
+      }, 800);
+    }
+
+    function handleTileClick(e) {
+      if (!inputEnabled) return;
+      const index = parseInt(e.target.dataset.index);
+      userSequence.push(index);
+      const currentStep = userSequence.length - 1;
+      if (index !== sequence[currentStep]) {
+        message.textContent = `Game Over! You reached level ${level}`;
+        checkHighScore(level);
+        level = 1;
+        setTimeout(startGame, 2000);
         return;
       }
-      const tile = grid.querySelector(`.tile[data-index='${sequence[i]}']`);
-      tile.classList.add('active');
-      i++;
-    }, 800);
-  }
-
-  function nextLevel() {
-    // Increase tile size as level grows (min 40px, max 100px)
-    let tileSize = Math.min(40 + level * 3, 100);
-    createTiles(tileSize);
-
-    sequence.push(getRandomTile());
-    playSequence();
-  }
-
-  grid.addEventListener('click', e => {
-    if(!inputEnabled) return;
-    if(!e.target.classList.contains('tile')) return;
-
-    const clickedIndex = parseInt(e.target.dataset.index);
-    if(clickedIndex === sequence[userIndex]) {
-      e.target.classList.add('active');
-      setTimeout(() => e.target.classList.remove('active'), 300);
-      userIndex++;
-      if(userIndex === sequence.length) {
-        inputEnabled = false;
-        message.textContent = "Correct! Next level...";
+      if (userSequence.length === sequence.length) {
         level++;
-        setTimeout(nextLevel, 1500);
+        userSequence = [];
+        setTimeout(startGame, 1000);
       }
-    } else {
-      gameOver();
     }
-  });
 
-  function gameOver() {
-    message.textContent = `Game Over! You reached level ${level}.`;
-    saveScore(level);
-    sequence = [];
-    level = 1;
-    inputEnabled = false;
-    setTimeout(() => {
-      message.textContent = "Starting new game...";
-      nextLevel();
-    }, 3000);
-  }
+    function startGame() {
+      const gridSize = 4;
+      createGrid(gridSize);
+      const totalTiles = gridSize * gridSize;
+      sequence = generateSequence(level + 2, totalTiles);
+      highlightSequence(sequence);
+      message.textContent = 'Memorize the sequence';
+    }
 
-  function saveScore(score) {
-    let best = localStorage.getItem("sequenceMemory");
-    if(!best || score > best) {
-      localStorage.setItem("sequenceMemory", score);
+    function checkHighScore(score) {
+      const scoresRef = db.collection('sequenceLeaderboard');
+      scoresRef.orderBy('score', 'desc').limit(1).get().then(snapshot => {
+        let topScore = 0;
+        snapshot.forEach(doc => {
+          topScore = doc.data().score;
+        });
+        if (score > topScore) {
+          const name = prompt('New High Score! Enter your name:');
+          if (name) {
+            scoresRef.add({ name, score });
+          }
+        }
+      });
     }
-    const name = prompt("Enter your name for leaderboard:");
-    if(name) {
-      // Firebase submission placeholder
-      console.log(`Name: ${name}, Sequence Memory Level: ${score}`);
-    }
-  }
 
-  window.onload = () => {
-    if(localStorage.getItem("theme") === "light") {
-      document.body.classList.add("light");
-    }
-    nextLevel();
-  };
-</script>
+    window.onload = startGame;
+  </script>
 </body>
 </html>
