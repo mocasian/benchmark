@@ -127,6 +127,36 @@
       if (userSequence.length === sequence.length) {
         level++;
         userSequence = [];
-        setTimeout(startGame, 
-::contentReference[oaicite:37]{index=37}
- 
+        setTimeout(startGame, 1000);
+      }
+    }
+
+    function startGame() {
+      const gridSize = 4;
+      createGrid(gridSize);
+      const totalTiles = gridSize * gridSize;
+      sequence = generateSequence(level + 2, totalTiles);
+      highlightSequence(sequence);
+      message.textContent = 'Memorize the tiles';
+    }
+
+    function checkHighScore(score) {
+      const scoresRef = db.collection('visualLeaderboard');
+      scoresRef.orderBy('score', 'desc').limit(1).get().then(snapshot => {
+        let topScore = 0;
+        snapshot.forEach(doc => {
+          topScore = doc.data().score;
+        });
+        if (score > topScore) {
+          const name = prompt('New High Score! Enter your name:');
+          if (name) {
+            scoresRef.add({ name, score });
+          }
+        }
+      });
+    }
+
+    window.onload = startGame;
+  </script>
+</body>
+</html>
